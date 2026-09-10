@@ -5,3 +5,5 @@ qiskit-aer
 numpy
 pydantic
 python-dotenv
+openai
+google-genai

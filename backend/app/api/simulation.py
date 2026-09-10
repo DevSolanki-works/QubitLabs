@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models.quantum import (
+from app.quantum.models.quantum import (
     SimulationRequest,
     SimulationResponse,
 )

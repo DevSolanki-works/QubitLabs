@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.simulation import router as simulation_router
+from app.api.copilot import router as copilot_router
 
 
 app = FastAPI(
@@ -23,7 +24,7 @@ app.add_middleware(
 
 
 app.include_router(simulation_router)
-
+app.include_router(copilot_router)
 
 @app.get("/")
 def root():
