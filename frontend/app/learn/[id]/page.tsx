@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -9,143 +10,181 @@ import {
   CheckCircle2,
   Clock3,
   FlaskConical,
+  GraduationCap,
   Lightbulb,
   Play,
+  Sparkles,
 } from "lucide-react";
 
-import { lessons } from "@/lib/lessons";
+import { getChallengeForLesson } from "@/lib/challenges";
+import { getLessonById, getNextLesson, lessons } from "@/lib/lessons";
+import { isLessonComplete } from "@/lib/progress";
 
 export default function LessonPage() {
   const params = useParams();
   const id = String(params.id);
 
-  const lesson = lessons.find((item) => item.id === id);
+  const lesson = getLessonById(id);
+  const nextLesson = lesson ? getNextLesson(lesson.id) : null;
+  const challenge = lesson ? getChallengeForLesson(lesson.id) : null;
+
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (lesson) {
+      setIsCompleted(isLessonComplete(lesson.id));
+    }
+  }, [lesson]);
 
   if (!lesson) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#050b10] text-white">
-        <div className="text-center">
-          <Atom className="mx-auto text-cyan-400" size={32} />
-          <h1 className="mt-4 text-xl font-semibold">Lesson not found</h1>
-
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center max-w-md">
+          <Atom className="mx-auto text-cyan-400 animate-spin" size={36} />
+          <h1 className="mt-4 text-xl font-bold">Lesson Not Found</h1>
+          <p className="mt-2 text-xs text-slate-400">
+            The requested lesson could not be located in the curriculum.
+          </p>
           <Link
             href="/learn"
-            className="mt-5 inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-2.5 text-xs font-semibold text-[#061016] transition hover:bg-cyan-300"
           >
-            <ArrowLeft size={15} />
-            Back to learning
+            <ArrowLeft size={14} />
+            Back to Curriculum
           </Link>
         </div>
       </main>
     );
   }
 
-  const isSuperposition = lesson.id === "superposition";
-
   return (
     <main className="min-h-screen bg-[#050b10] text-white">
-      {/* Header */}
-      <header className="flex h-16 items-center border-b border-white/10 bg-[#070c13] px-5 lg:px-8">
-        <Link
-          href="/learn"
-          className="flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
-        >
-          <ArrowLeft size={17} />
-          Learning Path
-        </Link>
+      {/* Navigation Header */}
+      <header className="flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13] px-6 lg:px-10">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/learn"
+            className="flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
+          >
+            <ArrowLeft size={17} />
+            <span className="hidden sm:inline">Curriculum</span>
+          </Link>
 
-        <div className="mx-4 h-5 w-px bg-white/10" />
+          <div className="h-5 w-px bg-white/10" />
 
-        <div className="text-sm font-medium">{lesson.title}</div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 font-mono text-[10px] text-cyan-300">
+              Lesson {lesson.number}
+            </span>
+            <span className="text-sm font-semibold">{lesson.title}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {mounted && isCompleted && (
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+              <CheckCircle2 size={13} />
+              <span>Completed</span>
+            </div>
+          )}
+
+          <Link
+            href={`/lab?lesson=${lesson.id}`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-400 px-3.5 py-1.5 text-xs font-semibold text-[#061016] transition hover:bg-cyan-300"
+          >
+            <Play size={13} />
+            <span>Open Experiment</span>
+          </Link>
+        </div>
       </header>
 
       <div className="mx-auto max-w-5xl px-6 py-10 lg:py-14">
-        {/* Hero */}
+        {/* Lesson Hero */}
         <div className="max-w-3xl">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1 text-xs text-cyan-300">
-              Lesson {lesson.number}
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
+            <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 font-mono text-xs font-semibold text-cyan-300">
+              Lesson {lesson.number} of {lessons.length}
             </span>
 
-            <span className="flex items-center gap-1.5 text-xs text-white/30">
+            <span className="flex items-center gap-1 text-xs text-slate-400">
               <Clock3 size={13} />
               {lesson.duration}
             </span>
 
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/35">
+            <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-400">
               {lesson.difficulty}
             </span>
           </div>
 
-          <h1 className="text-4xl font-semibold tracking-tight lg:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tight text-white lg:text-5xl">
             {lesson.title}
           </h1>
 
-          <p className="mt-3 text-lg text-cyan-400">
+          <p className="mt-3 text-base font-medium text-cyan-400 lg:text-lg">
             {lesson.subtitle}
           </p>
 
-          <p className="mt-6 text-base leading-8 text-slate-400">
+          <p className="mt-5 text-sm leading-relaxed text-slate-300 lg:text-base">
             {lesson.description}
           </p>
         </div>
 
-        {/* Concept */}
-        <section className="mt-10 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.025] p-6">
-          <div className="flex gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
-              <Lightbulb size={18} className="text-cyan-300" />
+        {/* Core Concept Callout */}
+        <section className="mt-8 rounded-2xl border border-cyan-400/20 bg-gradient-to-r from-cyan-950/20 to-transparent p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+              <Lightbulb size={20} />
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300/70">
-                Core idea
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+                Core Quantum Principle
               </div>
-
-              <p className="mt-2 text-sm leading-7 text-slate-300">
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">
                 {lesson.concept}
               </p>
             </div>
           </div>
         </section>
 
-        {/* How it works */}
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold">What you'll do</h2>
+        {/* 3 Step Interactive Workflow */}
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold text-white">How This Experiment Works</h2>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             <Step
               number="01"
-              title="Learn"
-              description="Understand the quantum concept before touching the circuit."
+              title="Concept"
+              description="Learn why quantum mechanics behaves this way before placing any gates."
             />
-
             <Step
               number="02"
-              title="Build"
-              description="Use the QubitLabs circuit composer to construct the experiment."
+              title="Build Circuit"
+              description="Assemble quantum gates onto qubits in the interactive circuit composer."
             />
-
             <Step
               number="03"
-              title="Observe"
-              description="Run the circuit and see the actual quantum result."
+              title="Verify & Ask"
+              description="Simulate with Qiskit Aer, inspect real probabilities, and ask Copilot why."
             />
           </div>
         </section>
 
-        {/* Experiment */}
-        <section className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-[#0a1019]">
-          <div className="border-b border-white/10 px-6 py-5">
+        {/* Interactive Experiment Box */}
+        <section className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-[#090f18] shadow-lg">
+          <div className="border-b border-white/10 px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-                <FlaskConical size={18} className="text-cyan-300" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+                <FlaskConical size={18} />
               </div>
-
               <div>
-                <h2 className="font-semibold">Interactive experiment</h2>
-                <p className="mt-1 text-xs text-white/30">
-                  Your result will be evaluated by the simulator.
+                <h2 className="text-base font-semibold text-white">
+                  Interactive Lab Task
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  Evaluated automatically by real Qiskit quantum simulation.
                 </p>
               </div>
             </div>
@@ -153,56 +192,81 @@ export default function LessonPage() {
 
           <div className="p-6">
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-              <div className="text-xs uppercase tracking-[0.15em] text-white/30">
-                Your task
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Objective
               </div>
-
-              <p className="mt-3 text-lg font-medium">
+              <p className="mt-2 text-base font-semibold text-white">
                 {lesson.task}
               </p>
 
-              {isSuperposition && (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <Target
-                    label="Required gate"
-                    value="H"
-                  />
+              {/* Targets / Required Gates details if challenge exists */}
+              {challenge && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {challenge.requiredGates.length > 0 && (
+                    <Target
+                      label="Required Gates"
+                      value={challenge.requiredGates
+                        .map((r) =>
+                          r.gate === "CNOT"
+                            ? `CNOT (q${r.control ?? r.qubit}→q${r.target})`
+                            : `${r.gate} on q${r.qubit ?? 0}`
+                        )
+                        .join(", ")}
+                    />
+                  )}
 
-                  <Target
-                    label="Target distribution"
-                    value="~50% |0⟩ / ~50% |1⟩"
-                  />
+                  {challenge.targetProbabilities && (
+                    <Target
+                      label="Target Distribution"
+                      value={Object.entries(challenge.targetProbabilities)
+                        .map(([state, prob]) => `|${state}⟩ ≈ ${(prob * 100).toFixed(0)}%`)
+                        .join(" · ")}
+                    />
+                  )}
+
+                  {challenge.targetCondition && (
+                    <Target
+                      label="Success Condition"
+                      value={challenge.targetCondition.description}
+                    />
+                  )}
                 </div>
               )}
             </div>
 
-            <Link
-              href={
-                isSuperposition
-                  ? "/?lesson=superposition"
-                  : "/"
-              }
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-[#061016] transition hover:bg-cyan-300"
-            >
-              <Play size={15} />
-              Open Experiment
-              <ArrowRight size={15} />
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <Link
+                href={`/lab?lesson=${lesson.id}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-5 py-3 text-sm font-semibold text-[#061016] shadow-[0_0_20px_rgba(6,182,212,0.25)] transition hover:opacity-90"
+              >
+                <Play size={16} />
+                <span>Open Experiment in Quantum Lab</span>
+                <ArrowRight size={15} />
+              </Link>
+
+              {nextLesson && (
+                <Link
+                  href={`/learn/${nextLesson.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-400 transition hover:text-cyan-300"
+                >
+                  <span>Skip to Next: {nextLesson.title}</span>
+                  <ArrowRight size={13} />
+                </Link>
+              )}
+            </div>
           </div>
         </section>
 
-        {/* What to notice */}
+        {/* What to Notice Section */}
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={17} className="text-emerald-400" />
-            <h2 className="text-sm font-semibold">What to notice</h2>
+          <div className="flex items-center gap-2 text-cyan-400">
+            <Sparkles size={16} />
+            <h2 className="text-sm font-semibold">What to Notice in the Lab</h2>
           </div>
-
-          <p className="mt-3 text-sm leading-7 text-slate-400">
-            Don't just look at whether the circuit ran. Compare the circuit
-            you built with the statevector, probabilities, measurement
-            results, and Bloch sphere. These visualizations show different
-            views of the same quantum experiment.
+          <p className="mt-2 text-xs leading-relaxed text-slate-400">
+            When you run this experiment, do not look solely at the pass badge. Compare the
+            exact complex statevector amplitudes with the measurement histogram and the 3D
+            Bloch sphere. Ask Quantum Copilot why your circuit produced that specific state.
           </p>
         </section>
       </div>
@@ -220,32 +284,21 @@ function Step({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-      <div className="text-xs font-mono text-cyan-400/70">{number}</div>
-
-      <h3 className="mt-3 font-medium">{title}</h3>
-
-      <p className="mt-2 text-xs leading-6 text-white/35">
-        {description}
-      </p>
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="font-mono text-xs font-bold text-cyan-400">{number}</div>
+      <h3 className="mt-2 text-sm font-semibold text-white">{title}</h3>
+      <p className="mt-1 text-xs leading-relaxed text-slate-400">{description}</p>
     </div>
   );
 }
 
-function Target({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function Target({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-white/25">
+    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-slate-400">
         {label}
       </div>
-
-      <div className="mt-2 font-mono text-sm text-cyan-300">
+      <div className="mt-1 font-mono text-xs font-semibold text-cyan-300">
         {value}
       </div>
     </div>

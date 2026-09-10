@@ -287,6 +287,7 @@ def build_context(
     question: str,
     mode: str,
     history: list,
+    challenge_context: str | None = None,
 ) -> str:
 
     normalized_mode = normalize_mode(mode)
@@ -298,10 +299,14 @@ def build_context(
 
     recent_history = serialize_history(history)
 
+    challenge_section = ""
+    if challenge_context:
+        challenge_section = f"\nACTIVE EDUCATIONAL CHALLENGE:\n{challenge_context}\n"
+
     return f"""
 CURRENT TUTOR MODE:
 {normalized_mode}
-
+{challenge_section}
 CURRENT STUDENT QUESTION:
 {question}
 
@@ -348,6 +353,7 @@ def explain_quantum_experiment(
     question: str,
     mode: str,
     history: list | None = None,
+    challenge_context: str | None = None,
 ) -> str:
 
     api_key = os.getenv("GEMINI_API_KEY")
@@ -372,6 +378,7 @@ def explain_quantum_experiment(
         question=question,
         mode=mode,
         history=history or [],
+        challenge_context=challenge_context,
     )
 
     response = client.models.generate_content(
@@ -380,7 +387,8 @@ def explain_quantum_experiment(
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTIONS,
             temperature=0.15,
-            max_output_tokens=600,
+            max_output_tokens=2048,
+            thinking_config=types.ThinkingConfig(thinking_budget=250),
         ),
     )
 

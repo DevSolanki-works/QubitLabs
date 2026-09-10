@@ -1,509 +1,529 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
+  ArrowRight,
   Atom,
+  Bot,
   Brain,
-  ChevronDown,
-  Code2,
+  Check,
+  ChevronRight,
+  Eye,
+  Flame,
+  FlaskConical,
+  GraduationCap,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+  Zap,
 } from "lucide-react";
 
-import GatePalette from "@/components/GatePalette";
-import CircuitGrid from "@/components/CircuitGrid";
-import CircuitToolbar from "@/components/CircuitToolbar";
-import BlochCard from "@/components/BlochCard";
-import ProbabilityChart from "@/components/ProbabilityChart";
-import MeasurementChart from "@/components/MeasurementChart";
-import QuantumCopilot from "@/components/QuantumCopilot";
-import { markLessonComplete } from "@/lib/progress";
-
-import { getChallengeForLesson } from "@/lib/challenges";
-import { validateChallenge } from "@/lib/challengeValidator";
-
+import { lessons } from "@/lib/lessons";
 import {
-  addColumn,
-  addQubit,
-  createEmptyCircuit,
-  removeColumn,
-  removeQubit,
-  serializeCircuit,
-} from "@/lib/circuit";
+  getCompletedLessons,
+  getLessonStatus,
+  getProgress,
+  resetProgress,
+} from "@/lib/progress";
 
-import {
-  QuantumCircuit,
-  SimulationResult,
-} from "@/lib/quantum";
-
-export default function LabPage() {
-  const searchParams = useSearchParams();
-
-  const [circuit, setCircuit] = useState<QuantumCircuit>(
-    createEmptyCircuit(2, 6)
-  );
-
-  const [selectedGate, setSelectedGate] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<SimulationResult | null>(null);
-
-  // --------------------------------------------------
-  // Learning challenge
-  // --------------------------------------------------
-
-  const lessonId = searchParams.get("lesson");
-
-  const challenge = lessonId
-    ? getChallengeForLesson(lessonId)
-    : undefined;
-
-  const [challengeComplete, setChallengeComplete] = useState(false);
-  const [challengeMessage, setChallengeMessage] = useState("");
-
-  // --------------------------------------------------
-  // Run simulation
-  // --------------------------------------------------
-
-  const runCircuit = async () => {
-    setRunning(true);
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/quantum/simulate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            num_qubits: circuit.numQubits,
-            gates: serializeCircuit(circuit),
-            shots: 1024,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Simulation failed: ${response.status}`);
-      }
-
-      const data = (await response.json()) as SimulationResult;
-
-      // Store actual simulation result
-      setResult(data);
-
-      // --------------------------------------------------
-      // Evaluate learning challenge
-      // --------------------------------------------------
-
-      if (challenge) {
-        const validation = validateChallenge(
-          challenge,
-          serializeCircuit(circuit),
-          data
-        );
-
-        setChallengeComplete(validation.passed);
-        setChallengeMessage(validation.reason);
-
-        if (validation.passed && lessonId) {
-          markLessonComplete(lessonId);
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Could not connect to the quantum simulator.");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  // --------------------------------------------------
-  // Reset
-  // --------------------------------------------------
-
-  const resetCircuit = () => {
-    setCircuit(
-      createEmptyCircuit(
-        circuit.numQubits,
-        circuit.numColumns
-      )
-    );
-
-    setResult(null);
-
-    if (challenge) {
-      setChallengeComplete(false);
-      setChallengeMessage("");
-    }
-  };
-
+export default function HomePageWrapper() {
   return (
-    <main className="min-h-screen bg-[#080b14] text-white">
-      <header className="flex h-16 items-center justify-between border-b border-white/10 bg-[#090d17] px-5 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="rounded-lg p-2 text-white/40 transition hover:bg-white/5 hover:text-white"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-
-          <div className="h-5 w-px bg-white/10" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-300/10">
-              <Atom
-                size={17}
-                className="text-cyan-300"
-              />
-            </div>
-
-            <div>
-              <div className="text-sm font-semibold">
-                Quantum Lab
-              </div>
-
-              <div className="hidden text-[10px] text-white/30 sm:block">
-                Interactive circuit environment
-              </div>
-            </div>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#050b10] text-white">
+          <div className="flex items-center gap-3 text-cyan-300">
+            <Atom className="animate-spin" size={24} />
+            <span className="text-sm">Loading QubitLabs...</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.025] px-3 py-2 text-xs sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-
-            <span className="text-white/35">
-              Backend
-            </span>
-
-            <span className="text-cyan-300">
-              Qiskit Aer
-            </span>
-
-            <ChevronDown
-              size={12}
-              className="text-white/20"
-            />
-          </div>
-
-          <button className="rounded-lg border border-white/10 p-2 text-white/40 hover:bg-white/5 hover:text-white">
-            <Brain size={17} />
-          </button>
-        </div>
-      </header>
-
-      <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
-        <GatePalette
-          onGateSelect={(gate) =>
-            setSelectedGate(gate)
-          }
-        />
-
-        <section className="min-w-0 flex-1 p-4 lg:p-6">
-          <div className="mx-auto max-w-[1400px]">
-
-            {/* --------------------------------------------------
-                Learning Challenge
-            -------------------------------------------------- */}
-
-            {challenge && (
-              <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.04] p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-400">
-                      Learning Challenge
-                    </div>
-
-                    <h2 className="mt-2 text-lg font-semibold">
-                      {challenge.title}
-                    </h2>
-
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                      {challenge.instruction}
-                    </p>
-                  </div>
-
-                  {challengeComplete && (
-                    <div className="shrink-0 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-400">
-                      ✓ Complete
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* --------------------------------------------------
-                Challenge feedback
-            -------------------------------------------------- */}
-
-            {challenge &&
-              challengeMessage && (
-                <div
-                  className={`mb-5 rounded-xl border p-4 text-sm ${
-                    challengeComplete
-                      ? "border-emerald-400/20 bg-emerald-400/[0.05] text-emerald-300"
-                      : "border-amber-400/20 bg-amber-400/[0.04] text-amber-300"
-                  }`}
-                >
-                  {challengeComplete ? "✓ " : "→ "}
-                  {challengeMessage}
-                </div>
-              )}
-
-            {/* --------------------------------------------------
-                Toolbar
-            -------------------------------------------------- */}
-
-            <div className="mb-5">
-              <CircuitToolbar
-                numQubits={circuit.numQubits}
-                numColumns={circuit.numColumns}
-                running={running}
-                onAddQubit={() =>
-                  setCircuit(addQubit(circuit))
-                }
-                onRemoveQubit={() =>
-                  setCircuit(removeQubit(circuit))
-                }
-                onAddColumn={() =>
-                  setCircuit(addColumn(circuit))
-                }
-                onRemoveColumn={() =>
-                  setCircuit(removeColumn(circuit))
-                }
-                onRun={runCircuit}
-                onReset={resetCircuit}
-              />
-            </div>
-
-            {/* --------------------------------------------------
-                Selected gate
-            -------------------------------------------------- */}
-
-            {selectedGate && (
-              <div className="mb-4 flex items-center justify-between rounded-xl border border-cyan-300/10 bg-cyan-300/[0.025] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 font-mono text-xs text-cyan-200">
-                    {selectedGate}
-                  </div>
-
-                  <div>
-                    <div className="text-xs font-medium">
-                      Gate selected
-                    </div>
-
-                    <div className="text-[11px] text-white/30">
-                      Click any circuit cell to place it
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() =>
-                    setSelectedGate(null)
-                  }
-                  className="text-xs text-white/30 hover:text-white"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {/* --------------------------------------------------
-                Circuit composer
-            -------------------------------------------------- */}
-
-            <div className="mb-5">
-              <div className="mb-3 flex items-end justify-between">
-                <div>
-                  <h1 className="text-lg font-semibold">
-                    Circuit Composer
-                  </h1>
-
-                  <p className="mt-1 text-xs text-white/30">
-                    Drag a gate onto a qubit or select a gate
-                    and click a cell.
-                  </p>
-                </div>
-
-                <div className="hidden text-xs text-white/20 sm:block">
-                  {circuit.operations.length} operations
-                </div>
-              </div>
-
-              <CircuitGrid
-                circuit={circuit}
-                setCircuit={setCircuit}
-                selectedGate={selectedGate}
-              />
-            </div>
-
-            {/* --------------------------------------------------
-                JSON
-            -------------------------------------------------- */}
-
-            <div className="rounded-2xl border border-white/10 bg-[#0b101c]">
-              <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-medium">
-                  <Code2
-                    size={14}
-                    className="text-cyan-300"
-                  />
-
-                  Circuit Representation
-                </div>
-
-                <span className="rounded-md bg-white/5 px-2 py-1 text-[9px] uppercase tracking-widest text-white/25">
-                  JSON
-                </span>
-              </div>
-
-              <pre className="max-h-48 overflow-auto p-4 text-xs leading-6 text-white/35">
-                {JSON.stringify(
-                  serializeCircuit(circuit),
-                  null,
-                  2
-                )}
-              </pre>
-            </div>
-
-            {/* --------------------------------------------------
-                Copilot
-            -------------------------------------------------- */}
-
-            <div className="mt-5">
-              <QuantumCopilot
-                circuit={{
-                  num_qubits: circuit.numQubits,
-                  gates: serializeCircuit(circuit),
-                }}
-                result={result}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* --------------------------------------------------
-            Results
-        -------------------------------------------------- */}
-
-        <aside className="w-full border-t border-white/10 bg-[#090d17] p-5 lg:w-[350px] lg:border-l lg:border-t-0">
-          <ResultsPanel result={result} />
-        </aside>
-      </div>
-    </main>
+      }
+    >
+      <HomePage />
+    </Suspense>
   );
 }
 
-function ResultsPanel({
-  result,
-}: {
-  result: SimulationResult | null;
-}) {
-  if (!result) {
-    return (
-      <div className="flex h-full min-h-[500px] flex-col items-center justify-center text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.025]">
-          <Atom
-            size={24}
-            className="text-white/20"
-          />
-        </div>
+function HomePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-        <h2 className="mt-5 text-sm font-medium">
-          No simulation yet
-        </h2>
+  // Forward backwards-compatible query params to /lab
+  useEffect(() => {
+    const lessonParam = searchParams.get("lesson");
+    const challengeParam = searchParams.get("challenge");
+    if (lessonParam || challengeParam) {
+      const query = new URLSearchParams(searchParams.toString()).toString();
+      router.replace(`/lab?${query}`);
+    }
+  }, [searchParams, router]);
 
-        <p className="mt-2 max-w-[230px] text-xs leading-5 text-white/25">
-          Build a circuit and press Run Circuit to
-          explore its quantum state.
-        </p>
-      </div>
-    );
-  }
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  const loadProgress = () => {
+    setCompletedLessons(getCompletedLessons());
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    loadProgress();
+
+    window.addEventListener("qubitlabs-progress-updated", loadProgress);
+    return () => {
+      window.removeEventListener("qubitlabs-progress-updated", loadProgress);
+    };
+  }, []);
+
+  const progressStats = getProgress(lessons.length);
+  const allLessonIds = lessons.map((l) => l.id);
+
+  // Find next recommended lesson
+  const nextLesson =
+    lessons.find((l) => !completedLessons.includes(l.id)) || lessons[0];
+
+  const handleResetProgress = () => {
+    if (confirm("Reset learning progress?")) {
+      resetProgress();
+      loadProgress();
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/30">
-          Simulation Results
+    <main className="min-h-screen bg-[#050b10] text-white selection:bg-cyan-400 selection:text-[#050b10]">
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13]/90 px-6 backdrop-blur-md lg:px-12">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <Atom size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold tracking-tight text-white">
+                QubitLabs
+              </span>
+              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+                Aer Powered
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-1 text-xs text-white/20">
-          {result.shots.toLocaleString()} shots
+        <nav className="flex items-center gap-2 sm:gap-4">
+          <Link
+            href="/learn"
+            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+          >
+            <GraduationCap size={15} className="text-cyan-400" />
+            <span className="hidden sm:inline">Curriculum</span>
+          </Link>
+
+          <Link
+            href="/challenges"
+            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+          >
+            <Trophy size={14} className="text-violet-400" />
+            <span className="hidden sm:inline">Challenges</span>
+          </Link>
+
+          <Link
+            href="/lab"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20 hover:text-white"
+          >
+            <FlaskConical size={14} />
+            <span>Quantum Lab</span>
+          </Link>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-white/5 px-6 py-16 lg:px-12 lg:py-24">
+        {/* Subtle background glow */}
+        <div className="pointer-events-none absolute -left-20 top-0 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-1/4 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
+
+        <div className="mx-auto max-w-5xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-300">
+            <Sparkles size={13} />
+            <span>AI-Powered Quantum Education Platform</span>
+          </div>
+
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:leading-[1.15]">
+            Don't just learn quantum computing.{" "}
+            <span className="bg-gradient-to-r from-cyan-300 via-cyan-400 to-emerald-300 bg-clip-text text-transparent">
+              See it happen.
+            </span>
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+            Assemble real quantum circuits, simulate them deterministically with{" "}
+            <strong className="text-white">IBM Qiskit Aer</strong>, inspect complex
+            statevectors and 3D Bloch spheres, and receive interactive tutoring from{" "}
+            <strong className="text-white">Quantum Copilot</strong>.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/learn"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-6 py-3.5 text-sm font-bold text-[#061016] shadow-[0_0_25px_rgba(6,182,212,0.3)] transition hover:opacity-90"
+            >
+              <span>Start Learning</span>
+              <ArrowRight size={16} />
+            </Link>
+
+            <Link
+              href="/lab"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              <FlaskConical size={16} className="text-cyan-400" />
+              <span>Open Quantum Lab</span>
+            </Link>
+
+            <Link
+              href="/challenges"
+              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-400/5 px-4 py-3.5 text-sm font-medium text-violet-300 transition hover:bg-violet-400/15"
+            >
+              <Trophy size={15} />
+              <span>Challenges</span>
+            </Link>
+          </div>
+
+          {/* Differentiator loop pill */}
+          <div className="mt-12 flex flex-wrap items-center gap-2 text-xs text-slate-400 sm:gap-3">
+            <span className="font-semibold text-cyan-300">Core Loop:</span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
+              1. Learn Concept
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
+              2. Build Circuit
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
+              3. Qiskit Aer Simulation
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
+              4. 3D Visualization
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 text-violet-300">
+              5. AI Copilot Tutor
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Statevector */}
+      {/* Main Dashboard Section */}
+      <section className="mx-auto max-w-5xl px-6 py-12 lg:px-12">
+        {/* Row 1: Progress & Continue Learning Banner */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Progress Card */}
+          <div className="rounded-2xl border border-white/10 bg-[#080d16] p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+                Quantum Foundations
+              </span>
+              {mounted && progressStats.completed > 0 && (
+                <button
+                  onClick={handleResetProgress}
+                  className="text-[10px] text-slate-500 hover:text-slate-300"
+                  title="Reset demo progress"
+                >
+                  <RotateCcw size={11} />
+                </button>
+              )}
+            </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-        <div className="mb-4 text-xs font-medium text-white/40">
-          Statevector
+            <div className="mt-3">
+              <div className="text-2xl font-bold text-white">
+                {mounted
+                  ? `${progressStats.completed} / ${lessons.length} Completed`
+                  : "Loading..."}
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                {progressStats.percentage}% of curriculum completed
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-700"
+                style={{
+                  width: mounted ? `${progressStats.percentage}%` : "0%",
+                }}
+              />
+            </div>
+
+            <Link
+              href="/learn"
+              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:underline"
+            >
+              <span>View full curriculum</span>
+              <ChevronRight size={13} />
+            </Link>
+          </div>
+
+          {/* Continue Learning CTA Card */}
+          <div className="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-950/25 via-[#09111c] to-[#080d16] p-6 shadow-[0_0_30px_rgba(6,182,212,0.1)] md:col-span-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                <Flame size={11} />
+                Recommended Next Step
+              </span>
+              <span className="text-xs text-slate-400">
+                Lesson {nextLesson.number}
+              </span>
+            </div>
+
+            <h2 className="mt-3 text-xl font-bold text-white">
+              {nextLesson.title}
+            </h2>
+
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+              {nextLesson.subtitle} — {nextLesson.task}
+            </p>
+
+            <div className="mt-5 flex items-center gap-3">
+              <Link
+                href={`/learn/${nextLesson.id}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-xs font-bold text-[#061016] shadow-sm transition hover:bg-cyan-300"
+              >
+                <span>Continue Lesson</span>
+                <ArrowRight size={14} />
+              </Link>
+
+              <Link
+                href={`/lab?lesson=${nextLesson.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <Play size={12} />
+                <span>Launch Experiment Directly</span>
+              </Link>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-2 font-mono text-xs">
-          {result.statevector.map(
-            (amplitude, index) => {
-              if (
-                amplitude.magnitude < 0.000001
-              ) {
-                return null;
-              }
+        {/* Row 2: Four Clean Quick Actions */}
+        <div className="mt-8">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            Platform Modules
+          </h2>
 
-              const basis = index
-                .toString(2)
-                .padStart(
-                  result.num_qubits,
-                  "0"
-                );
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Link
+              href="/learn"
+              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-cyan-400/30 hover:bg-[#0a121e]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                <GraduationCap size={20} />
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-cyan-200">
+                Learn Quantum
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">
+                6 structured interactive lessons from qubits to Grover search.
+              </p>
+            </Link>
+
+            <Link
+              href="/lab"
+              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-cyan-400/30 hover:bg-[#0a121e]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                <FlaskConical size={19} />
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-cyan-200">
+                Quantum Lab
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Interactive drag-and-drop circuit composer with real Qiskit simulation.
+              </p>
+            </Link>
+
+            <Link
+              href="/challenges"
+              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-violet-400/30 hover:bg-[#0a121e]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
+                <Trophy size={19} />
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-violet-200">
+                Circuit Challenges
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Assessment challenges evaluated against real quantum state probabilities.
+              </p>
+            </Link>
+
+            <Link
+              href="/lab#quantum-copilot-panel"
+              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-violet-400/30 hover:bg-[#0a121e]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
+                <Bot size={19} />
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-violet-200">
+                Quantum Copilot
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">
+                AI tutor grounded strictly in your verified quantum simulation facts.
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        {/* Row 3: Compact Unlocked Concepts Checklist */}
+        <div className="mt-10 rounded-2xl border border-white/10 bg-[#080d16] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-white">
+                Quantum Foundations Curriculum
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Your sequential path from single qubits to search algorithms.
+              </p>
+            </div>
+
+            <Link
+              href="/learn"
+              className="text-xs font-semibold text-cyan-400 hover:underline"
+            >
+              Open Full Path →
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {lessons.map((lesson) => {
+              const status = mounted
+                ? getLessonStatus(lesson.id, completedLessons, allLessonIds)
+                : "available";
+              const isCompleted = status === "completed";
+              const isCurrent = status === "current";
 
               return (
-                <div
-                  key={index}
-                  className="flex items-center justify-between"
+                <Link
+                  key={lesson.id}
+                  href={`/learn/${lesson.id}`}
+                  className={`flex items-center gap-3 rounded-xl border p-3 transition ${
+                    isCompleted
+                      ? "border-emerald-400/25 bg-emerald-950/10 text-emerald-200 hover:border-emerald-400/40"
+                      : isCurrent
+                        ? "border-cyan-400/35 bg-cyan-950/20 text-cyan-200 hover:border-cyan-400/50"
+                        : "border-white/5 bg-white/[0.015] text-slate-400 hover:border-white/15 hover:text-slate-200"
+                  }`}
                 >
-                  <span className="text-white/45">
-                    |{basis}⟩
-                  </span>
-
-                  <span className="text-cyan-200">
-                    {amplitude.real.toFixed(3)}
-                    {amplitude.imaginary >= 0
-                      ? "+"
-                      : ""}
-                    {amplitude.imaginary.toFixed(
-                      3
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold ${
+                      isCompleted
+                        ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-400"
+                        : isCurrent
+                          ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300"
+                          : "border-white/10 bg-white/5 text-slate-500"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <Check size={14} className="stroke-[2.5]" />
+                    ) : (
+                      lesson.number
                     )}
-                    i
-                  </span>
-                </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold">
+                      {lesson.title}
+                    </div>
+                    <div className="truncate text-[10px] text-slate-500">
+                      {lesson.difficulty} · {lesson.duration}
+                    </div>
+                  </div>
+
+                  {isCurrent && (
+                    <span className="rounded-md bg-cyan-400/20 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300">
+                      NEXT
+                    </span>
+                  )}
+                </Link>
               );
-            }
-          )}
+            })}
+          </div>
         </div>
-      </div>
 
-      <ProbabilityChart
-        probabilities={result.probabilities}
-      />
+        {/* Row 4: Product Differentiator (Build -> Run -> Visualize -> Understand) */}
+        <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-b from-[#09111c] to-[#080d16] p-6 lg:p-8">
+          <div className="text-center max-w-xl mx-auto">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+              Why QubitLabs Works
+            </span>
+            <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
+              Real Simulation. Real Quantum States. Zero Hallucinations.
+            </h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              Unlike generic chatbot wrappers, QubitLabs executes every circuit through
+              IBM's Qiskit Aer simulation engine before tutoring.
+            </p>
+          </div>
 
-      <MeasurementChart
-        counts={result.counts}
-        shots={result.shots}
-      />
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+              <div className="font-mono text-xs font-bold text-cyan-400">01 / BUILD</div>
+              <h3 className="mt-2 text-sm font-semibold text-white">Circuit Composer</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Drag and drop H, X, CNOT, S, T, and measurement gates on multi-qubit lines.
+              </p>
+            </div>
 
-      {result.bloch_vectors.map(
-        (vector) => (
-          <BlochCard
-            key={vector.qubit}
-            vector={vector}
-          />
-        )
-      )}
-    </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+              <div className="font-mono text-xs font-bold text-cyan-400">02 / RUN</div>
+              <h3 className="mt-2 text-sm font-semibold text-white">Qiskit Aer Simulator</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Executes 1,024 shots with exact quantum statevector and density matrix mathematics.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+              <div className="font-mono text-xs font-bold text-cyan-400">03 / VISUALIZE</div>
+              <h3 className="mt-2 text-sm font-semibold text-white">Multi-View Inspector</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Observe statevector amplitudes, probability distributions, and 3D Bloch spheres.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+              <div className="font-mono text-xs font-bold text-violet-400">04 / UNDERSTAND</div>
+              <h3 className="mt-2 text-sm font-semibold text-white">Quantum Copilot</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Google Gemini analyzes the verified simulation data to explain the quantum physics.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 bg-[#05090f] px-6 py-8 text-center text-xs text-slate-500 lg:px-12">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row max-w-5xl mx-auto">
+          <div className="flex items-center gap-2">
+            <Atom size={15} className="text-cyan-400" />
+            <span className="font-semibold text-slate-300">QubitLabs</span>
+            <span>— "Don't just learn quantum computing. See it happen."</span>
+          </div>
+          <div className="flex items-center gap-4 text-[11px]">
+            <Link href="/learn" className="hover:text-cyan-400">
+              Curriculum
+            </Link>
+            <Link href="/lab" className="hover:text-cyan-400">
+              Lab
+            </Link>
+            <Link href="/challenges" className="hover:text-cyan-400">
+              Challenges
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }

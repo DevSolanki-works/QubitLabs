@@ -34,6 +34,8 @@ class CopilotRequest(BaseModel):
 
     result: dict
 
+    challenge_context: str | None = None
+
     history: list[CopilotMessage] = Field(
         default_factory=list,
         max_length=8,

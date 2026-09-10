@@ -1,161 +1,223 @@
 import type { Challenge } from "./challenges";
 
-type CircuitGate = {
+export type CircuitGate = {
   gate: string;
-  qubit: number;
-  column: number;
+  qubit?: number;
+  control?: number;
   target?: number;
+  column: number;
 };
 
-type SimulationResult = {
+export type SimulationResultLike = {
+  num_qubits?: number;
   probabilities?: Record<string, number>;
+  counts?: Record<string, number>;
+  shots?: number;
 };
 
-function normalizeGate(gate: string) {
-  return gate.toUpperCase() === "CX"
-    ? "CNOT"
-    : gate.toUpperCase();
+export type ValidationMetric = {
+  label: string;
+  actual: string;
+  expected: string;
+  passed: boolean;
+};
+
+export type ValidationResult = {
+  passed: boolean;
+  reason: string;
+  metrics: ValidationMetric[];
+};
+
+function normalizeGate(gate: string): string {
+  const upper = gate.toUpperCase().trim();
+  return upper === "CX" ? "CNOT" : upper;
 }
 
 export function validateChallenge(
   challenge: Challenge,
   gates: CircuitGate[],
-  result?: SimulationResult | null
-) {
+  result?: SimulationResultLike | null
+): ValidationResult {
+  const metrics: ValidationMetric[] = [];
+
+  // --------------------------------------------------
+  // 1. Normalize operations
+  // --------------------------------------------------
   const normalizedGates = gates
-    .map((gate) => ({
-      ...gate,
-      gate: normalizeGate(gate.gate),
+    .map((g) => ({
+      gate: normalizeGate(g.gate),
+      qubit: g.qubit !== undefined ? g.qubit : g.control,
+      control: g.control !== undefined ? g.control : g.qubit,
+      target: g.target,
+      column: g.column,
     }))
     .sort((a, b) => a.column - b.column);
 
   // --------------------------------------------------
-  // Required gates
+  // 2. Check required gates
   // --------------------------------------------------
+  for (const req of challenge.requiredGates) {
+    const reqGate = normalizeGate(req.gate);
+    const reqControl = req.control !== undefined ? req.control : req.qubit;
+    const reqTarget = req.target;
 
-  for (const required of challenge.requiredGates) {
-    const found = normalizedGates.some((gate) => {
-      if (
-        gate.gate !== normalizeGate(required.gate) ||
-        gate.qubit !== required.qubit
-      ) {
-        return false;
-      }
+    const found = normalizedGates.some((g) => {
+      if (g.gate !== reqGate) return false;
 
-      if (
-        required.target !== undefined &&
-        gate.target !== required.target
-      ) {
-        return false;
+      if (reqGate === "CNOT") {
+        if (reqControl !== undefined && g.control !== reqControl) return false;
+        if (reqTarget !== undefined && g.target !== reqTarget) return false;
+      } else {
+        if (req.qubit !== undefined && g.qubit !== req.qubit) return false;
       }
 
       return true;
     });
 
     if (!found) {
-      if (required.target !== undefined) {
+      if (reqGate === "CNOT") {
         return {
           passed: false,
-          reason: `Add a ${required.gate} from q${required.qubit} to q${required.target}.`,
+          reason: `Add a CNOT gate with control on q${reqControl} and target on q${reqTarget}.`,
+          metrics,
         };
       }
-
       return {
         passed: false,
-        reason: `Add the ${required.gate} gate to q${required.qubit}.`,
+        reason: `Add the ${reqGate} gate to q${req.qubit ?? 0}.`,
+        metrics,
       };
     }
   }
 
   // --------------------------------------------------
-  // Check ordering
+  // 3. Check gate order
   // --------------------------------------------------
+  if (challenge.gateOrder && challenge.gateOrder.length > 0) {
+    for (const order of challenge.gateOrder) {
+      const beforeGateName = normalizeGate(order.beforeGate);
+      const afterGateName = normalizeGate(order.afterGate);
 
-  const hGate = normalizedGates.find(
-    (gate) =>
-      gate.gate === "H" &&
-      gate.qubit === 0
-  );
+      const beforeGate = normalizedGates.find(
+        (g) =>
+          g.gate === beforeGateName &&
+          (order.beforeQubit === undefined || g.qubit === order.beforeQubit)
+      );
 
-  const cnotGate = normalizedGates.find(
-    (gate) =>
-      gate.gate === "CNOT" &&
-      gate.qubit === 0 &&
-      gate.target === 1
-  );
+      const afterGate = normalizedGates.find(
+        (g) =>
+          g.gate === afterGateName &&
+          (order.afterQubit === undefined || g.qubit === order.afterQubit)
+      );
 
-  if (hGate && cnotGate) {
-    if (hGate.column >= cnotGate.column) {
-      return {
-        passed: false,
-        reason:
-          "The H gate should come before the CNOT. Try placing H on an earlier column.",
-      };
+      if (beforeGate && afterGate && beforeGate.column >= afterGate.column) {
+        return {
+          passed: false,
+          reason: `The ${order.beforeGate} gate must come before the ${order.afterGate} gate. Place it in an earlier column.`,
+          metrics,
+        };
+      }
     }
   }
 
   // --------------------------------------------------
-  // Need simulation
+  // 4. Verify simulation was executed
   // --------------------------------------------------
-
-  if (!result?.probabilities) {
+  if (!result || !result.probabilities) {
     return {
       passed: false,
-      reason:
-        "Run the circuit to check your result.",
+      reason: "Run the circuit to simulate and evaluate the quantum state.",
+      metrics,
     };
   }
 
-  // --------------------------------------------------
-  // Probability validation
-  // --------------------------------------------------
+  const probabilities = result.probabilities;
 
+  // --------------------------------------------------
+  // 5. Target probabilities validation (e.g. Superposition, Bell state)
+  // --------------------------------------------------
   if (challenge.targetProbabilities) {
-    const probabilities =
-      result.probabilities;
+    const tolerance = 0.12;
 
-    for (const [state, target] of Object.entries(
-      challenge.targetProbabilities
-    )) {
-      const actual =
-        probabilities[state] ?? 0;
+    for (const [state, target] of Object.entries(challenge.targetProbabilities)) {
+      const actual = probabilities[state] ?? 0;
+      const passState = Math.abs(actual - target) <= tolerance;
 
-      if (
-        Math.abs(actual - target) > 0.1
-      ) {
+      metrics.push({
+        label: `|${state}⟩ Probability`,
+        actual: `${(actual * 100).toFixed(1)}%`,
+        expected: `~${(target * 100).toFixed(0)}%`,
+        passed: passState,
+      });
+
+      if (!passState) {
         return {
           passed: false,
-          reason:
-            "The circuit is valid, but the measurement probabilities are not at the target yet.",
+          reason: `State |${state}⟩ probability is ${(actual * 100).toFixed(1)}%, but expected ~${(target * 100).toFixed(0)}%. Check your gate placement.`,
+          metrics,
         };
       }
     }
 
-    // Reject unexpected states
-    for (const [
-      state,
-      probability,
-    ] of Object.entries(probabilities)) {
-      if (
-        !(state in challenge.targetProbabilities) &&
-        probability > 0.1
-      ) {
+    // Reject unexpected states with significant probability (> 10%)
+    for (const [state, actual] of Object.entries(probabilities)) {
+      if (!(state in challenge.targetProbabilities) && actual > 0.1) {
+        metrics.push({
+          label: `Unexpected |${state}⟩`,
+          actual: `${(actual * 100).toFixed(1)}%`,
+          expected: "0%",
+          passed: false,
+        });
+
         return {
           passed: false,
-          reason:
-            "The result contains an unexpected measurement outcome. Check your circuit and try again.",
+          reason: `Unexpected measurement state |${state}⟩ appeared with ${(actual * 100).toFixed(1)}% probability. Verify your circuit configuration.`,
+          metrics,
         };
       }
     }
   }
 
   // --------------------------------------------------
-  // Success
+  // 6. Custom target condition (e.g. Deutsch algorithm phase kickback)
   // --------------------------------------------------
+  if (challenge.targetCondition) {
+    const cond = challenge.targetCondition;
+    if (cond.type === "qubit_probability") {
+      let matchingProb = 0;
 
+      for (const [bitstring, prob] of Object.entries(probabilities)) {
+        // Qiskit bitstring order: q_n-1 ... q_0. So q_k is at index (len - 1 - k)
+        const charIdx = bitstring.length - 1 - cond.qubit;
+        if (charIdx >= 0 && bitstring[charIdx] === String(cond.expectedValue)) {
+          matchingProb += prob;
+        }
+      }
+
+      const passCondition = matchingProb >= cond.minProbability;
+      metrics.push({
+        label: `q${cond.qubit} = |${cond.expectedValue}⟩`,
+        actual: `${(matchingProb * 100).toFixed(1)}%`,
+        expected: `≥ ${(cond.minProbability * 100).toFixed(0)}%`,
+        passed: passCondition,
+      });
+
+      if (!passCondition) {
+        return {
+          passed: false,
+          reason: `${cond.description}. Current probability is ${(matchingProb * 100).toFixed(1)}%.`,
+          metrics,
+        };
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // Success!
+  // --------------------------------------------------
   return {
     passed: true,
-    reason:
-      "Challenge complete. You created the target quantum state.",
+    reason: "Challenge complete! You created the target quantum state.",
+    metrics,
   };
 }

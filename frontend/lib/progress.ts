@@ -7,62 +7,94 @@ export function getCompletedLessons(): string[] {
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-
     if (!stored) {
       return [];
     }
 
     const parsed = JSON.parse(stored);
-
     if (!Array.isArray(parsed)) {
       return [];
     }
 
-    return parsed;
+    return parsed.map((id) => String(id));
   } catch {
     return [];
   }
 }
 
-export function isLessonComplete(
-  lessonId: string
-): boolean {
+export function isLessonComplete(lessonId: string): boolean {
   return getCompletedLessons().includes(lessonId);
 }
 
-export function markLessonComplete(
-  lessonId: string
-) {
+export function markLessonComplete(lessonId: string): void {
   if (typeof window === "undefined") {
     return;
   }
 
-  const completed = getCompletedLessons();
-
-  if (!completed.includes(lessonId)) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify([
-        ...completed,
-        lessonId,
-      ])
-    );
+  try {
+    const completed = getCompletedLessons();
+    if (!completed.includes(lessonId)) {
+      const updated = [...completed, lessonId];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      // Dispatch a custom storage event so other components on the same page can re-render
+      window.dispatchEvent(new Event("qubitlabs-progress-updated"));
+    }
+  } catch (err) {
+    console.error("Failed to save progress to localStorage:", err);
   }
 }
 
-export function getProgress(
-  totalLessons: number
-) {
+export function resetProgress(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("qubitlabs-progress-updated"));
+  } catch (err) {
+    console.error("Failed to reset progress:", err);
+  }
+}
+
+export function getProgress(totalLessons: number): {
+  completed: number;
+  total: number;
+  percentage: number;
+} {
   const completed = getCompletedLessons();
+  const validCompletedCount = Math.min(completed.length, totalLessons);
+  const percentage =
+    totalLessons <= 0
+      ? 0
+      : Math.round((validCompletedCount / totalLessons) * 100);
 
   return {
-    completed: completed.length,
+    completed: validCompletedCount,
     total: totalLessons,
-    percentage:
-      totalLessons === 0
-        ? 0
-        : Math.round(
-            (completed.length / totalLessons) * 100
-          ),
+    percentage,
   };
+}
+
+export type LessonProgressStatus = "completed" | "current" | "available";
+
+export function getLessonStatus(
+  lessonId: string,
+  completedLessons: string[],
+  allLessonIds: string[]
+): LessonProgressStatus {
+  if (completedLessons.includes(lessonId)) {
+    return "completed";
+  }
+
+  // The first uncompleted lesson in the sequence is marked as "current"
+  const firstUncompletedId = allLessonIds.find(
+    (id) => !completedLessons.includes(id)
+  );
+
+  if (firstUncompletedId === lessonId) {
+    return "current";
+  }
+
+  return "available";
 }

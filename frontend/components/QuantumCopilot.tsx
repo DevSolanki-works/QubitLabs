@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AlertCircle,
   Bot,
   Bug,
   ChevronRight,
   Lightbulb,
   Loader2,
   MessageCircle,
+  RotateCcw,
   Send,
   Sparkles,
   User,
@@ -20,9 +22,15 @@ type CopilotMessage = {
   content: string;
 };
 
-type QuantumCopilotProps = {
+export type QuantumCopilotProps = {
   circuit: unknown;
   result: unknown;
+  challengeContext?: {
+    title: string;
+    lessonId?: string;
+  } | null;
+  externalPrompt?: string | null;
+  onClearExternalPrompt?: () => void;
 };
 
 const API_URL =
@@ -134,12 +142,17 @@ function renderAnswer(text: string) {
 export default function QuantumCopilot({
   circuit,
   result,
+  challengeContext,
+  externalPrompt,
+  onClearExternalPrompt,
 }: QuantumCopilotProps) {
   const [mode, setMode] = useState<CopilotMode>("explain");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<CopilotMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lastFailedQuestion = useRef<string | null>(null);
 
   const askCopilot = async (preset?: string) => {
     const text = (preset ?? question).trim();
@@ -148,7 +161,7 @@ export default function QuantumCopilot({
 
     if (!result) {
       setError(
-        "Run the circuit first. Copilot needs the simulation results."
+        "Run the circuit first! Copilot needs real Qiskit simulation results to analyze your quantum state."
       );
       return;
     }
@@ -164,8 +177,22 @@ export default function QuantumCopilot({
     setQuestion("");
     setError("");
     setLoading(true);
+    lastFailedQuestion.current = null;
 
     try {
+      // Build enriched payload with challenge context if student is in a challenge
+      const payload: Record<string, unknown> = {
+        question: text,
+        mode,
+        circuit,
+        result,
+        history: messages.slice(-8),
+      };
+
+      if (challengeContext) {
+        payload.challenge_context = `Active Challenge: ${challengeContext.title}`;
+      }
+
       const response = await fetch(
         `${API_URL}/api/copilot/explain`,
         {
@@ -173,13 +200,7 @@ export default function QuantumCopilot({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            question: text,
-            mode,
-            circuit,
-            result,
-            history: messages.slice(-8),
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -187,7 +208,7 @@ export default function QuantumCopilot({
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Copilot request failed."
+          data.detail || `Copilot request failed with status ${response.status}.`
         );
       }
 
@@ -201,16 +222,30 @@ export default function QuantumCopilot({
         },
       ]);
     } catch (err) {
-      setMessages(messages);
+      lastFailedQuestion.current = text;
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while contacting Copilot."
+          : "Could not connect to Quantum Copilot. Check that the backend server is running."
       );
     } finally {
       setLoading(false);
     }
   };
+
+  // Handle external prompt trigger (e.g. from "Ask Copilot why" button)
+  useEffect(() => {
+    if (externalPrompt) {
+      setMode("explain");
+      // Scroll panel into view smoothly
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      askCopilot(externalPrompt);
+      if (onClearExternalPrompt) {
+        onClearExternalPrompt();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalPrompt]);
 
   const currentMode =
     MODES.find((item) => item.id === mode) ?? MODES[0];
@@ -218,7 +253,11 @@ export default function QuantumCopilot({
   const starters = STARTERS[mode];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f1a] shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
+    <section
+      id="quantum-copilot-panel"
+      ref={panelRef}
+      className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f1a] shadow-[0_18px_60px_rgba(0,0,0,0.2)]"
+    >
       {/* Header */}
       <div className="border-b border-white/[0.07] px-4 py-4">
         <div className="flex items-center gap-3">
@@ -241,14 +280,16 @@ export default function QuantumCopilot({
               </span>
             </div>
 
-            <p className="text-[10px] text-white/30">
-              Ask about the experiment you just ran
+            <p className="text-[10px] text-white/40">
+              {challengeContext
+                ? `Assisting with: ${challengeContext.title}`
+                : "Ask about the experiment you just ran"}
             </p>
           </div>
 
-          <div className="ml-auto hidden items-center gap-1.5 text-[9px] text-white/20 sm:flex">
+          <div className="ml-auto hidden items-center gap-1.5 text-[9px] text-white/30 sm:flex">
             <MessageCircle size={11} />
-            Circuit-aware
+            Circuit & Qiskit-aware
           </div>
         </div>
       </div>
@@ -308,8 +349,8 @@ export default function QuantumCopilot({
                 <p className="text-[11px] font-medium text-white/75">
                   What would you like to understand?
                 </p>
-                <p className="mt-0.5 text-[9px] text-white/25">
-                  I use your actual circuit and simulation.
+                <p className="mt-0.5 text-[9px] text-white/30">
+                  I explain using your actual circuit and verified Qiskit results.
                 </p>
               </div>
             </div>
@@ -360,7 +401,7 @@ export default function QuantumCopilot({
                   className={`max-w-[86%] rounded-2xl px-3.5 py-2.5 text-[11px] leading-5 ${
                     message.role === "user"
                       ? "rounded-br-md bg-cyan-300/10 text-cyan-50"
-                      : "rounded-bl-md border border-white/[0.06] bg-white/[0.025] text-white/65"
+                      : "rounded-bl-md border border-white/[0.06] bg-white/[0.025] text-white/75"
                   }`}
                 >
                   {message.role === "assistant"
@@ -400,14 +441,31 @@ export default function QuantumCopilot({
       </div>
 
       {error && (
-        <div className="mx-3 mb-3 rounded-xl border border-red-300/10 bg-red-300/5 px-3 py-2 text-[10px] text-red-200">
-          {error}
+        <div className="mx-3 mb-3 flex items-start justify-between gap-2 rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-[11px] text-red-200">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-300" />
+            <span>{error}</span>
+          </div>
+          {lastFailedQuestion.current && (
+            <button
+              type="button"
+              onClick={() => {
+                if (lastFailedQuestion.current) {
+                  askCopilot(lastFailedQuestion.current);
+                }
+              }}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-red-300/20 bg-red-400/20 px-2 py-1 text-[10px] text-red-100 hover:bg-red-400/30"
+            >
+              <RotateCcw size={10} />
+              Retry
+            </button>
+          )}
         </div>
       )}
 
       {/* Input */}
       <div className="border-t border-white/[0.07] p-3">
-        <div className="mb-2 text-[8px] font-medium uppercase tracking-[0.18em] text-white/20">
+        <div className="mb-2 text-[8px] font-medium uppercase tracking-[0.18em] text-white/30">
           {currentMode.label} mode
         </div>
 
@@ -458,7 +516,7 @@ export default function QuantumCopilot({
           </button>
         </div>
 
-        <div className="mt-1.5 px-1 text-[8px] text-white/15">
+        <div className="mt-1.5 px-1 text-[8px] text-white/20">
           Enter to send · Shift+Enter for a new line
         </div>
       </div>

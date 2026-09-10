@@ -29,6 +29,7 @@ def explain(request: CopilotRequest):
             question=request.question,
             mode=request.mode,
             history=request.history,
+            challenge_context=request.challenge_context,
         )
 
         return CopilotResponse(
