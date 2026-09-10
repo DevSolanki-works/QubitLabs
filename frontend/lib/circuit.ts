@@ -193,3 +193,45 @@ export function serializeCircuit(
     }
   );
 }
+
+export function createDeutschCircuit(): QuantumCircuit {
+  return {
+    numQubits: 2,
+    numColumns: 6,
+    operations: [
+      { id: createId(), type: "X", qubit: 1, column: 0 },
+      { id: createId(), type: "H", qubit: 0, column: 1 },
+      { id: createId(), type: "H", qubit: 1, column: 1 },
+      { id: createId(), type: "CNOT", control: 0, target: 1, column: 2 },
+      { id: createId(), type: "H", qubit: 0, column: 3 },
+    ],
+  };
+}
+
+export function createGroverCircuit(): QuantumCircuit {
+  return {
+    numQubits: 2,
+    numColumns: 12,
+    operations: [
+      // 1. Superposition
+      { id: createId(), type: "H", qubit: 0, column: 0 },
+      { id: createId(), type: "H", qubit: 1, column: 0 },
+      // 2. Oracle marking |11> (Controlled-Z)
+      { id: createId(), type: "H", qubit: 1, column: 1 },
+      { id: createId(), type: "CNOT", control: 0, target: 1, column: 2 },
+      { id: createId(), type: "H", qubit: 1, column: 3 },
+      // 3. Diffuser (inversion about mean)
+      { id: createId(), type: "H", qubit: 0, column: 4 },
+      { id: createId(), type: "H", qubit: 1, column: 4 },
+      { id: createId(), type: "X", qubit: 0, column: 5 },
+      { id: createId(), type: "X", qubit: 1, column: 5 },
+      { id: createId(), type: "H", qubit: 1, column: 6 },
+      { id: createId(), type: "CNOT", control: 0, target: 1, column: 7 },
+      { id: createId(), type: "H", qubit: 1, column: 8 },
+      { id: createId(), type: "X", qubit: 0, column: 9 },
+      { id: createId(), type: "X", qubit: 1, column: 9 },
+      { id: createId(), type: "H", qubit: 0, column: 10 },
+      { id: createId(), type: "H", qubit: 1, column: 10 },
+    ],
+  };
+}
