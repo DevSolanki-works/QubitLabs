@@ -6,6 +6,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
+from qiskit.quantum_info import Statevector, partial_trace, Pauli
 
 
 SUPPORTED_GATES = {
@@ -205,6 +206,11 @@ class QuantumEngine:
             num_qubits,
         )
 
+        bloch_vectors = self._bloch_vectors(
+            statevector,
+            num_qubits,
+        )
+
         # ---------------------------------------------------------
         # 3. Run shot-based measurement simulation
         # ---------------------------------------------------------
@@ -234,6 +240,7 @@ class QuantumEngine:
             ),
             "probabilities": probabilities,
             "counts": dict(counts),
+            "bloch_vectors": bloch_vectors,
             "shots": shots,
         }
 
@@ -302,5 +309,40 @@ class QuantumEngine:
 
         return probabilities
 
+    @staticmethod
+    def _bloch_vectors(
+        statevector: Statevector,
+        num_qubits: int,
+    ) -> list[dict[str, float]]:
 
+        vectors = []
+
+        for qubit in range(num_qubits):
+
+            # Trace out every other qubit.
+            traced_out = [
+                index
+                for index in range(num_qubits)
+                if index != qubit
+            ]
+
+            reduced_state = partial_trace(
+                statevector,
+                traced_out,
+            )
+
+            x = float(np.real(reduced_state.expectation_value(Pauli("X"))))
+            y = float(np.real(reduced_state.expectation_value(Pauli("Y"))))
+            z = float(np.real(reduced_state.expectation_value(Pauli("Z"))))
+
+            vectors.append(
+                {
+                    "qubit": qubit,
+                    "x": round(x, 6),
+                    "y": round(y, 6),
+                    "z": round(z, 6),
+                }
+            )
+
+        return vectors
 quantum_engine = QuantumEngine()

@@ -56,5 +56,14 @@ export interface SimulationResult {
 
   counts: Record<string, number>;
 
+  bloch_vectors: BlochVector[];
+
   shots: number;
+}
+
+export interface BlochVector {
+  qubit: number;
+  x: number;
+  y: number;
+  z: number;
 }

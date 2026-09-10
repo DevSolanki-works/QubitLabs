@@ -50,4 +50,5 @@ class SimulationResponse(BaseModel):
     statevector: list[dict[str, float]]
     probabilities: dict[str, float]
     counts: dict[str, int]
+    bloch_vectors: list[dict[str, float]]
     shots: int
