@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
