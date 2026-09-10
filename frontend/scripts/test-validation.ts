@@ -6,6 +6,9 @@ import {
 } from "../lib/challenges";
 import { lessons, getLessonById, getNextLesson } from "../lib/lessons";
 import { getLessonStatus, getProgress } from "../lib/progress";
+import { QUIZZES, getQuizForLesson } from "../lib/quizzes";
+import { RESOURCES } from "../lib/resources";
+import { getCurrentRank, RANKS, ACHIEVEMENTS } from "../lib/gamification";
 
 let passedCount = 0;
 let totalCount = 0;
@@ -159,9 +162,10 @@ assert(res10.passed === true, "Valid 2-qubit Grover search circuit passes valida
 // ----------------------------------------------------
 // 5. Curriculum & Progression Tests
 // ----------------------------------------------------
-assert(lessons.length === 6, "All 6 lessons configured in curriculum");
-assert(getNextLesson("superposition")?.id === "entanglement", "Next lesson after superposition is entanglement");
-assert(getNextLesson("grovers-algorithm") === null, "Grover is the final lesson");
+assert(lessons.length === 10, "All 10 curated lessons configured in curriculum");
+assert(getNextLesson("qubit-basics")?.id === "measurement", "Next lesson after qubit-basics is measurement");
+assert(getNextLesson("superposition")?.id === "bloch-sphere", "Next lesson after superposition is bloch-sphere");
+assert(getNextLesson("vqe-nisq") === null, "vqe-nisq is the final lesson in curriculum");
 
 const testLessonIds = lessons.map((l) => l.id);
 const status1 = getLessonStatus("qubit-basics", [], testLessonIds);
@@ -175,6 +179,53 @@ assert(status3 === "current", "Second lesson becomes 'current' once first is com
 
 const status4 = getLessonStatus("superposition", ["qubit-basics"], testLessonIds);
 assert(status4 === "available", "Future lesson has 'available' status");
+
+// ----------------------------------------------------
+// 6. Deterministic Quiz System Tests
+// ----------------------------------------------------
+const quizKeys = Object.keys(QUIZZES);
+assert(quizKeys.length === 10, "Quizzes defined for all 10 curriculum lessons");
+
+let allQuizQuestionsValid = true;
+quizKeys.forEach((key) => {
+  const qz = QUIZZES[key];
+  if (!qz.questions || qz.questions.length === 0) allQuizQuestionsValid = false;
+  qz.questions.forEach((q) => {
+    if (
+      q.correctIndex < 0 ||
+      q.correctIndex >= q.options.length ||
+      !q.explanation ||
+      q.explanation.length < 10
+    ) {
+      allQuizQuestionsValid = false;
+    }
+  });
+});
+assert(allQuizQuestionsValid, "All quiz questions have valid option bounds and explanations");
+
+// ----------------------------------------------------
+// 7. Verified Educational Resource Database Tests
+// ----------------------------------------------------
+assert(RESOURCES.length >= 10, "Resource database contains comprehensive curated items");
+const allResourcesValid = RESOURCES.every(
+  (r) => r.id && r.title && r.provider && r.url.startsWith("http") && r.whyRecommended
+);
+assert(allResourcesValid, "All resources have valid providers, URLs, and rationales");
+
+// ----------------------------------------------------
+// 8. Gamification & Ranks Tests
+// ----------------------------------------------------
+assert(RANKS.length === 8, "8 progression ranks defined from Qubit Novice to Quantum Master");
+assert(ACHIEVEMENTS.length === 12, "12 technical achievements configured");
+
+const rank0 = getCurrentRank(0);
+assert(rank0.rank.name === "Qubit Novice", "0 XP maps to Qubit Novice");
+
+const rank150 = getCurrentRank(150);
+assert(rank150.rank.name === "Quantum Explorer", "150 XP maps to Quantum Explorer");
+
+const rank3000 = getCurrentRank(3000);
+assert(rank3000.rank.name === "Quantum Master", "3000 XP maps to Quantum Master");
 
 console.log("==================================================");
 console.log(`TOTAL: ${passedCount}/${totalCount} TESTS PASSED`);

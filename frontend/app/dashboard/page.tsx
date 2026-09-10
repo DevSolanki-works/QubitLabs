@@ -6,47 +6,54 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Atom,
-  Bot,
-  Brain,
-  Check,
+  Award,
+  BookOpen,
+  CheckCircle2,
   ChevronRight,
+  Clock3,
+  Cpu,
   Eye,
   Flame,
   FlaskConical,
   GraduationCap,
   Play,
   RotateCcw,
+  Search,
+  Share2,
   Sparkles,
   Trophy,
   Zap,
+  Bot,
 } from "lucide-react";
 
 import { lessons } from "@/lib/lessons";
+import { challenges } from "@/lib/challenges";
+import { getCompletedLessons, getProgress, resetProgress } from "@/lib/progress";
 import {
-  getCompletedLessons,
-  getLessonStatus,
-  getProgress,
-  resetProgress,
-} from "@/lib/progress";
+  getGamificationState,
+  getCurrentRank,
+  ACHIEVEMENTS,
+  Achievement,
+} from "@/lib/gamification";
 
-export default function HomePageWrapper() {
+export default function DashboardPageWrapper() {
   return (
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#050b10] text-white">
           <div className="flex items-center gap-3 text-cyan-300">
             <Atom className="animate-spin" size={24} />
-            <span className="text-sm">Loading QubitLabs...</span>
+            <span className="text-sm">Loading Quantum Dashboard...</span>
           </div>
         </div>
       }
     >
-      <HomePage />
+      <DashboardPage />
     </Suspense>
   );
 }
 
-function HomePage() {
+function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -61,33 +68,83 @@ function HomePage() {
   }, [searchParams, router]);
 
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [gamificationState, setGamificationState] = useState(getGamificationState());
   const [mounted, setMounted] = useState(false);
 
-  const loadProgress = () => {
+  const loadData = () => {
     setCompletedLessons(getCompletedLessons());
+    setGamificationState(getGamificationState());
   };
 
   useEffect(() => {
     setMounted(true);
-    loadProgress();
+    loadData();
 
-    window.addEventListener("qubitlabs-progress-updated", loadProgress);
+    window.addEventListener("qubitlabs-progress-updated", loadData);
+    window.addEventListener("qubitlabs-gamification-updated", loadData);
     return () => {
-      window.removeEventListener("qubitlabs-progress-updated", loadProgress);
+      window.removeEventListener("qubitlabs-progress-updated", loadData);
+      window.removeEventListener("qubitlabs-gamification-updated", loadData);
     };
   }, []);
 
   const progressStats = getProgress(lessons.length);
-  const allLessonIds = lessons.map((l) => l.id);
+  const rankInfo = getCurrentRank(gamificationState.xp);
 
-  // Find next recommended lesson
-  const nextLesson =
-    lessons.find((l) => !completedLessons.includes(l.id)) || lessons[0];
+  // Quizzes completed count
+  const passedQuizzesCount = Object.values(gamificationState.quizzes).filter(
+    (q) => q.passed
+  ).length;
 
-  const handleResetProgress = () => {
-    if (confirm("Reset learning progress?")) {
+  // Adaptive recommendation logic
+  const getAdaptiveRecommendation = () => {
+    // 1. Check if there's an uncompleted quiz for a completed lesson
+    for (const lesson of lessons) {
+      if (completedLessons.includes(lesson.id)) {
+        const quizStatus = gamificationState.quizzes[lesson.id];
+        if (!quizStatus || !quizStatus.passed) {
+          return {
+            title: `Take Conceptual Quiz: ${lesson.title}`,
+            subtitle: "Verify your understanding of statevectors and Born's rule",
+            tag: "Knowledge Check",
+            href: `/learn/${lesson.id}`,
+            cta: "Take Quiz",
+            xp: 25,
+          };
+        }
+      }
+    }
+
+    // 2. Next uncompleted lesson
+    const nextUncompleted = lessons.find((l) => !completedLessons.includes(l.id));
+    if (nextUncompleted) {
+      return {
+        title: `Start Module: ${nextUncompleted.title}`,
+        subtitle: nextUncompleted.subtitle,
+        tag: "Next Curriculum Step",
+        href: `/learn/${nextUncompleted.id}`,
+        cta: "Begin Lesson",
+        xp: nextUncompleted.xpReward,
+      };
+    }
+
+    // 3. Fallback to challenges or lab
+    return {
+      title: "Master Algorithmic Challenges",
+      subtitle: "Test your skills against the quantum simulator evaluation suite",
+      tag: "Assessment Hub",
+      href: "/challenges",
+      cta: "View Challenges",
+      xp: 120,
+    };
+  };
+
+  const recommendation = getAdaptiveRecommendation();
+
+  const handleReset = () => {
+    if (confirm("Reset learning and gamification progress?")) {
       resetProgress();
-      loadProgress();
+      loadData();
     }
   };
 
@@ -96,442 +153,320 @@ function HomePage() {
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13]/90 px-6 backdrop-blur-md lg:px-12">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+          <Link
+            href="/"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+          >
             <Atom size={20} />
-          </div>
+          </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-bold tracking-tight text-white">
-                QubitLabs
-              </span>
-              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
-                Aer Powered
+              <span className="text-sm font-bold tracking-tight text-white">QubitLabs</span>
+              <span className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-cyan-300">
+                Dashboard
               </span>
             </div>
+            <span className="hidden text-[10px] text-white/40 sm:inline">
+              Quantum Learning & Progress Overview
+            </span>
           </div>
         </div>
 
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-cyan-300 transition hover:bg-cyan-950/30 hover:text-cyan-200"
-          >
-            <Sparkles size={14} className="text-cyan-400" />
-            <span className="hidden sm:inline">3D Landing</span>
-          </Link>
-
+        <div className="flex items-center gap-3">
           <Link
             href="/learn"
-            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.025] px-3.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white"
           >
-            <GraduationCap size={15} className="text-cyan-400" />
-            <span className="hidden sm:inline">Curriculum</span>
+            <GraduationCap size={14} className="text-cyan-400" />
+            <span>Curriculum</span>
           </Link>
 
           <Link
             href="/challenges"
-            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.025] px-3.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white"
           >
             <Trophy size={14} className="text-violet-400" />
-            <span className="hidden sm:inline">Challenges</span>
+            <span>Challenges</span>
           </Link>
 
           <Link
             href="/lab"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-4 py-1.5 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
           >
             <FlaskConical size={14} />
             <span>Quantum Lab</span>
           </Link>
-        </nav>
+
+          {mounted && progressStats.completed > 0 && (
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white"
+              title="Reset progress"
+            >
+              <RotateCcw size={12} />
+            </button>
+          )}
+        </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-white/5 px-6 py-16 lg:px-12 lg:py-24">
-        {/* Subtle background glow */}
-        <div className="pointer-events-none absolute -left-20 top-0 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-1/4 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
-
-        <div className="mx-auto max-w-5xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-300">
-            <Sparkles size={13} />
-            <span>AI-Powered Quantum Education Platform</span>
-          </div>
-
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:leading-[1.15]">
-            Don't just learn quantum computing.{" "}
-            <span className="bg-gradient-to-r from-cyan-300 via-cyan-400 to-emerald-300 bg-clip-text text-transparent">
-              See it happen.
-            </span>
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            Assemble real quantum circuits, simulate them deterministically with{" "}
-            <strong className="text-white">IBM Qiskit Aer</strong>, inspect complex
-            statevectors and 3D Bloch spheres, and receive interactive tutoring from{" "}
-            <strong className="text-white">Quantum Copilot</strong>.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link
-              href="/learn"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-6 py-3.5 text-sm font-bold text-[#061016] shadow-[0_0_25px_rgba(6,182,212,0.3)] transition hover:opacity-90"
-            >
-              <span>Start Learning</span>
-              <ArrowRight size={16} />
-            </Link>
-
-            <Link
-              href="/lab"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
-            >
-              <FlaskConical size={16} className="text-cyan-400" />
-              <span>Open Quantum Lab</span>
-            </Link>
-
-            <Link
-              href="/challenges"
-              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-400/5 px-4 py-3.5 text-sm font-medium text-violet-300 transition hover:bg-violet-400/15"
-            >
-              <Trophy size={15} />
-              <span>Challenges</span>
-            </Link>
-          </div>
-
-          {/* Differentiator loop pill */}
-          <div className="mt-12 flex flex-wrap items-center gap-2 text-xs text-slate-400 sm:gap-3">
-            <span className="font-semibold text-cyan-300">Core Loop:</span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
-              1. Learn Concept
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
-              2. Build Circuit
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
-              3. Qiskit Aer Simulation
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-slate-300">
-              4. 3D Visualization
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 text-violet-300">
-              5. AI Copilot Tutor
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Dashboard Section */}
-      <section className="mx-auto max-w-5xl px-6 py-12 lg:px-12">
-        {/* Row 1: Progress & Continue Learning Banner */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Progress Card */}
-          <div className="rounded-2xl border border-white/10 bg-[#080d16] p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                Quantum Foundations
-              </span>
-              {mounted && progressStats.completed > 0 && (
-                <button
-                  onClick={handleResetProgress}
-                  className="text-[10px] text-slate-500 hover:text-slate-300"
-                  title="Reset demo progress"
-                >
-                  <RotateCcw size={11} />
-                </button>
-              )}
-            </div>
-
-            <div className="mt-3">
-              <div className="text-2xl font-bold text-white">
-                {mounted
-                  ? `${progressStats.completed} / ${lessons.length} Completed`
-                  : "Loading..."}
+      <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14">
+        {/* Top Section: Rank Banner & Streak */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Rank Card */}
+          <div className="rounded-3xl border border-cyan-400/25 bg-gradient-to-br from-cyan-950/20 via-[#070c14] to-[#070c14] p-7 shadow-[0_0_30px_rgba(6,182,212,0.08)] lg:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/40 bg-cyan-400/10 font-mono text-xl font-extrabold text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                  {rankInfo.rank.badge}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+                      Tier {rankInfo.rank.tier} Quantum Rank
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white lg:text-3xl">
+                    {rankInfo.rank.name}
+                  </h2>
+                </div>
               </div>
-              <div className="mt-1 text-xs text-slate-400">
-                {progressStats.percentage}% of curriculum completed
+
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider text-slate-400">
+                  Total Experience
+                </div>
+                <div className="font-mono text-2xl font-extrabold text-cyan-300">
+                  {gamificationState.xp.toLocaleString()} <span className="text-xs font-medium text-slate-400">XP</span>
+                </div>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-700"
-                style={{
-                  width: mounted ? `${progressStats.percentage}%` : "0%",
-                }}
-              />
-            </div>
-
-            <Link
-              href="/learn"
-              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:underline"
-            >
-              <span>View full curriculum</span>
-              <ChevronRight size={13} />
-            </Link>
-          </div>
-
-          {/* Continue Learning CTA Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-950/25 via-[#09111c] to-[#080d16] p-6 shadow-[0_0_30px_rgba(6,182,212,0.1)] md:col-span-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
-                <Flame size={11} />
-                Recommended Next Step
-              </span>
-              <span className="text-xs text-slate-400">
-                Lesson {nextLesson.number}
-              </span>
-            </div>
-
-            <h2 className="mt-3 text-xl font-bold text-white">
-              {nextLesson.title}
-            </h2>
-
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
-              {nextLesson.subtitle} — {nextLesson.task}
+            <p className="mt-4 text-xs leading-relaxed text-slate-300">
+              {rankInfo.rank.description}
             </p>
 
-            <div className="mt-5 flex items-center gap-3">
-              <Link
-                href={`/learn/${nextLesson.id}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-xs font-bold text-[#061016] shadow-sm transition hover:bg-cyan-300"
-              >
-                <span>Continue Lesson</span>
-                <ArrowRight size={14} />
-              </Link>
+            {/* Level Progress Bar */}
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">
+                  {rankInfo.nextRank
+                    ? `Next: ${rankInfo.nextRank.name}`
+                    : "Maximum Quantum Rank Achieved"}
+                </span>
+                <span className="font-mono font-semibold text-cyan-300">
+                  {rankInfo.nextRank
+                    ? `${rankInfo.currentLevelXP} / ${rankInfo.nextLevelXP} XP (${rankInfo.progressPercent}%)`
+                    : `${gamificationState.xp} XP`}
+                </span>
+              </div>
 
-              <Link
-                href={`/lab?lesson=${nextLesson.id}`}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-              >
-                <Play size={12} />
-                <span>Launch Experiment Directly</span>
-              </Link>
+              <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 transition-all duration-700"
+                  style={{ width: `${Math.max(rankInfo.progressPercent, 5)}%` }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Row 2: Four Clean Quick Actions */}
-        <div className="mt-8">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Platform Modules
-          </h2>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Link
-              href="/learn"
-              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-cyan-400/30 hover:bg-[#0a121e]"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
-                <GraduationCap size={20} />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-cyan-200">
-                Learn Quantum
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                6 structured interactive lessons from qubits to Grover search.
-              </p>
-            </Link>
-
-            <Link
-              href="/lab"
-              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-cyan-400/30 hover:bg-[#0a121e]"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
-                <FlaskConical size={19} />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-cyan-200">
-                Quantum Lab
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Interactive drag-and-drop circuit composer with real Qiskit simulation.
-              </p>
-            </Link>
-
-            <Link
-              href="/challenges"
-              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-violet-400/30 hover:bg-[#0a121e]"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
-                <Trophy size={19} />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-violet-200">
-                Circuit Challenges
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Assessment challenges evaluated against real quantum state probabilities.
-              </p>
-            </Link>
-
-            <Link
-              href="/lab#quantum-copilot-panel"
-              className="group rounded-2xl border border-white/10 bg-[#080d16] p-5 transition hover:border-violet-400/30 hover:bg-[#0a121e]"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
-                <Bot size={19} />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-white group-hover:text-violet-200">
-                Quantum Copilot
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                AI tutor grounded strictly in your verified quantum simulation facts.
-              </p>
-            </Link>
-          </div>
-        </div>
-
-        {/* Row 3: Compact Unlocked Concepts Checklist */}
-        <div className="mt-10 rounded-2xl border border-white/10 bg-[#080d16] p-6">
-          <div className="flex items-center justify-between">
+          {/* Streak & Consistency Card */}
+          <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-[#070c14] p-7 shadow-lg">
             <div>
-              <h2 className="text-sm font-semibold text-white">
-                Quantum Foundations Curriculum
-              </h2>
-              <p className="mt-0.5 text-xs text-slate-400">
-                Your sequential path from single qubits to search algorithms.
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
+                  Learning Consistency
+                </span>
+                <Flame size={18} className="fill-amber-400 text-amber-400" />
+              </div>
+
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-mono text-4xl font-extrabold text-white">
+                  {gamificationState.streak.currentStreak}
+                </span>
+                <span className="text-sm font-semibold text-amber-300">Day Streak</span>
+              </div>
+
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                Log in daily and run quantum circuits to prevent quantum decoherence.
+              </p>
+            </div>
+
+            <div className="mt-6 border-t border-white/10 pt-4 text-[11px] text-slate-400">
+              <div className="flex items-center justify-between">
+                <span>Longest Coherent Streak:</span>
+                <span className="font-mono font-semibold text-white">
+                  {gamificationState.streak.longestStreak} days
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span>Total Simulations Run:</span>
+                <span className="font-mono font-semibold text-cyan-300">
+                  {gamificationState.simulationCount}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric Counter Grid */}
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-2xl border border-white/10 bg-[#070c14] p-5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs">Lessons</span>
+              <GraduationCap size={16} className="text-cyan-400" />
+            </div>
+            <div className="mt-2 font-mono text-2xl font-bold text-white">
+              {progressStats.completed} <span className="text-xs font-normal text-slate-500">/ {lessons.length}</span>
+            </div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              {progressStats.percentage}% complete
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#070c14] p-5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs">Quizzes</span>
+              <Award size={16} className="text-violet-400" />
+            </div>
+            <div className="mt-2 font-mono text-2xl font-bold text-white">
+              {passedQuizzesCount} <span className="text-xs font-normal text-slate-500">/ {lessons.length}</span>
+            </div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              Conceptual checks passed
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#070c14] p-5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs">Challenges</span>
+              <Trophy size={16} className="text-amber-400" />
+            </div>
+            <div className="mt-2 font-mono text-2xl font-bold text-white">
+              {completedLessons.length > 0 ? Math.min(completedLessons.length, challenges.length) : 0}{" "}
+              <span className="text-xs font-normal text-slate-500">/ {challenges.length}</span>
+            </div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              Simulator validated
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#070c14] p-5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs">Achievements</span>
+              <Sparkles size={16} className="text-emerald-400" />
+            </div>
+            <div className="mt-2 font-mono text-2xl font-bold text-white">
+              {gamificationState.unlockedAchievements.length}{" "}
+              <span className="text-xs font-normal text-slate-500">/ {ACHIEVEMENTS.length}</span>
+            </div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              Technical badges
+            </div>
+          </div>
+        </div>
+
+        {/* Adaptive Recommended Next Step Banner */}
+        <div className="mt-8 overflow-hidden rounded-2xl border border-cyan-400/30 bg-gradient-to-r from-cyan-950/20 via-[#070c14] to-[#070c14] p-6 shadow-lg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+                  {recommendation.tag}
+                </span>
+                <span className="text-xs font-semibold text-cyan-400">+{recommendation.xp} XP</span>
+              </div>
+              <h3 className="mt-2 text-lg font-bold text-white">
+                {recommendation.title}
+              </h3>
+              <p className="mt-1 text-xs text-slate-300">
+                {recommendation.subtitle}
               </p>
             </div>
 
             <Link
-              href="/learn"
-              className="text-xs font-semibold text-cyan-400 hover:underline"
+              href={recommendation.href}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-5 py-3 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
             >
-              Open Full Path →
+              <span>{recommendation.cta}</span>
+              <ArrowRight size={14} />
             </Link>
           </div>
+        </div>
 
-          <div className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-            {lessons.map((lesson) => {
-              const status = mounted
-                ? getLessonStatus(lesson.id, completedLessons, allLessonIds)
-                : "available";
-              const isCompleted = status === "completed";
-              const isCurrent = status === "current";
+        {/* Achievements Showcase Section */}
+        <div className="mt-14">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+                Verifiable Milestones
+              </div>
+              <h2 className="mt-1 text-xl font-bold text-white">Quantum Achievements</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Unlock achievements by completing lessons, scoring perfect quizzes, and simulating circuits.
+              </p>
+            </div>
+
+            <span className="font-mono text-xs text-slate-400">
+              {gamificationState.unlockedAchievements.length} Unlocked
+            </span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ACHIEVEMENTS.map((achievement) => {
+              const isUnlocked = gamificationState.unlockedAchievements.some(
+                (a) => a.id === achievement.id
+              );
 
               return (
-                <Link
-                  key={lesson.id}
-                  href={`/learn/${lesson.id}`}
-                  className={`flex items-center gap-3 rounded-xl border p-3 transition ${
-                    isCompleted
-                      ? "border-emerald-400/25 bg-emerald-950/10 text-emerald-200 hover:border-emerald-400/40"
-                      : isCurrent
-                        ? "border-cyan-400/35 bg-cyan-950/20 text-cyan-200 hover:border-cyan-400/50"
-                        : "border-white/5 bg-white/[0.015] text-slate-400 hover:border-white/15 hover:text-slate-200"
+                <div
+                  key={achievement.id}
+                  className={`flex flex-col justify-between rounded-2xl border p-5 transition ${
+                    isUnlocked
+                      ? "border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 via-[#070c14] to-[#070c14] shadow-[0_0_20px_rgba(16,185,129,0.06)]"
+                      : "border-white/5 bg-white/[0.015] opacity-60"
                   }`}
                 >
-                  <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold ${
-                      isCompleted
-                        ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-400"
-                        : isCurrent
-                          ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300"
-                          : "border-white/10 bg-white/5 text-slate-500"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <Check size={14} className="stroke-[2.5]" />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`rounded-md border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider ${
+                          isUnlocked
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-semibold"
+                            : "border-white/10 bg-white/5 text-slate-500"
+                        }`}
+                      >
+                        {achievement.category}
+                      </span>
+
+                      <span className="font-mono text-xs font-bold text-cyan-300">
+                        +{achievement.xpReward} XP
+                      </span>
+                    </div>
+
+                    <h4 className="mt-3 text-sm font-bold text-white">
+                      {achievement.title}
+                    </h4>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                      {achievement.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 border-t border-white/5 pt-3 text-[10px]">
+                    {isUnlocked ? (
+                      <span className="flex items-center gap-1 font-semibold text-emerald-400">
+                        <CheckCircle2 size={12} />
+                        <span>Unlocked</span>
+                      </span>
                     ) : (
-                      lesson.number
+                      <span className="text-slate-500">Locked</span>
                     )}
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-semibold">
-                      {lesson.title}
-                    </div>
-                    <div className="truncate text-[10px] text-slate-500">
-                      {lesson.difficulty} · {lesson.duration}
-                    </div>
-                  </div>
-
-                  {isCurrent && (
-                    <span className="rounded-md bg-cyan-400/20 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300">
-                      NEXT
-                    </span>
-                  )}
-                </Link>
+                </div>
               );
             })}
           </div>
         </div>
-
-        {/* Row 4: Product Differentiator (Build -> Run -> Visualize -> Understand) */}
-        <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-b from-[#09111c] to-[#080d16] p-6 lg:p-8">
-          <div className="text-center max-w-xl mx-auto">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
-              Why QubitLabs Works
-            </span>
-            <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
-              Real Simulation. Real Quantum States. Zero Hallucinations.
-            </h2>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Unlike generic chatbot wrappers, QubitLabs executes every circuit through
-              IBM's Qiskit Aer simulation engine before tutoring.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-              <div className="font-mono text-xs font-bold text-cyan-400">01 / BUILD</div>
-              <h3 className="mt-2 text-sm font-semibold text-white">Circuit Composer</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Drag and drop H, X, CNOT, S, T, and measurement gates on multi-qubit lines.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-              <div className="font-mono text-xs font-bold text-cyan-400">02 / RUN</div>
-              <h3 className="mt-2 text-sm font-semibold text-white">Qiskit Aer Simulator</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Executes 1,024 shots with exact quantum statevector and density matrix mathematics.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-              <div className="font-mono text-xs font-bold text-cyan-400">03 / VISUALIZE</div>
-              <h3 className="mt-2 text-sm font-semibold text-white">Multi-View Inspector</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Observe statevector amplitudes, probability distributions, and 3D Bloch spheres.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-              <div className="font-mono text-xs font-bold text-violet-400">04 / UNDERSTAND</div>
-              <h3 className="mt-2 text-sm font-semibold text-white">Quantum Copilot</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Google Gemini analyzes the verified simulation data to explain the quantum physics.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#05090f] px-6 py-8 text-center text-xs text-slate-500 lg:px-12">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row max-w-5xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Atom size={15} className="text-cyan-400" />
-            <span className="font-semibold text-slate-300">QubitLabs</span>
-            <span>— "Don't just learn quantum computing. See it happen."</span>
-          </div>
-          <div className="flex items-center gap-4 text-[11px]">
-            <Link href="/learn" className="hover:text-cyan-400">
-              Curriculum
-            </Link>
-            <Link href="/lab" className="hover:text-cyan-400">
-              Lab
-            </Link>
-            <Link href="/challenges" className="hover:text-cyan-400">
-              Challenges
-            </Link>
-          </div>
-        </div>
-      </footer>
+      </div>
     </main>
   );
 }

@@ -22,6 +22,8 @@ export function getCompletedLessons(): string[] {
   }
 }
 
+import { awardXP, unlockAchievement } from "./gamification";
+
 export function isLessonComplete(lessonId: string): boolean {
   return getCompletedLessons().includes(lessonId);
 }
@@ -36,6 +38,24 @@ export function markLessonComplete(lessonId: string): void {
     if (!completed.includes(lessonId)) {
       const updated = [...completed, lessonId];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      // Award +50 XP for completing a lesson
+      awardXP(50, `Completed Lesson: ${lessonId}`);
+
+      // Check relevant achievements
+      unlockAchievement("first-qubit");
+      if (lessonId === "measurement") unlockAchievement("quantum-measure");
+      if (lessonId === "superposition") unlockAchievement("pure-superposition");
+      if (lessonId === "entanglement") unlockAchievement("spooky-correlation");
+      if (lessonId === "deutsch-jozsa") unlockAchievement("phase-kickback");
+      if (lessonId === "grovers-algorithm") unlockAchievement("database-inverter");
+
+      // Check if all level 1 lessons completed
+      const level1Lessons = ["qubit-basics", "measurement", "superposition", "bloch-sphere"];
+      if (level1Lessons.every((id) => updated.includes(id))) {
+        unlockAchievement("foundations-scholar");
+      }
+
       // Dispatch a custom storage event so other components on the same page can re-render
       window.dispatchEvent(new Event("qubitlabs-progress-updated"));
     }

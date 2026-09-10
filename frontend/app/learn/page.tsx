@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Check,
+  Atom,
   CheckCircle2,
   Clock3,
   Flame,
@@ -14,59 +14,68 @@ import {
   RotateCcw,
   Sparkles,
   Trophy,
+  GitBranch,
+  LayoutGrid,
 } from "lucide-react";
 
 import { lessons } from "@/lib/lessons";
 import {
   getCompletedLessons,
-  getLessonStatus,
   getProgress,
   resetProgress,
 } from "@/lib/progress";
+import { getGamificationState, getCurrentRank } from "@/lib/gamification";
+import LearningPathTree from "@/components/LearningPathTree";
 
 export default function LearnPage() {
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [gamificationState, setGamificationState] = useState(getGamificationState());
+  const [viewMode, setViewMode] = useState<"tree" | "grid">("tree");
   const [mounted, setMounted] = useState(false);
 
-  const loadProgress = () => {
+  const loadData = () => {
     setCompletedLessons(getCompletedLessons());
+    setGamificationState(getGamificationState());
   };
 
   useEffect(() => {
     setMounted(true);
-    loadProgress();
+    loadData();
 
-    // Listen to custom event when progress is marked complete
-    window.addEventListener("qubitlabs-progress-updated", loadProgress);
+    window.addEventListener("qubitlabs-progress-updated", loadData);
+    window.addEventListener("qubitlabs-gamification-updated", loadData);
     return () => {
-      window.removeEventListener("qubitlabs-progress-updated", loadProgress);
+      window.removeEventListener("qubitlabs-progress-updated", loadData);
+      window.removeEventListener("qubitlabs-gamification-updated", loadData);
     };
   }, []);
 
   const progressStats = getProgress(lessons.length);
-  const allLessonIds = lessons.map((l) => l.id);
+  const rankInfo = getCurrentRank(gamificationState.xp);
+
+  // Determine current active lesson
+  const activeLesson =
+    lessons.find((l) => !completedLessons.includes(l.id)) || lessons[0];
 
   const handleReset = () => {
-    if (confirm("Reset learning demo progress?")) {
+    if (confirm("Reset learning progress and clear local progress state?")) {
       resetProgress();
-      loadProgress();
+      loadData();
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#050b10] text-white">
+    <main className="min-h-screen bg-[#050b10] text-white selection:bg-cyan-400 selection:text-[#050b10]">
       {/* Top Navigation */}
-      <header className="flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13] px-6 lg:px-10">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13]/90 px-6 backdrop-blur-md lg:px-12">
         <div className="flex items-center gap-4">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg p-2 text-white/40 transition hover:bg-white/5 hover:text-white"
-            title="Return to Quantum Lab"
+            title="Return to Landing"
           >
             <ArrowLeft size={18} />
-            <span className="hidden text-xs font-medium sm:inline">
-              Quantum Lab
-            </span>
+            <span className="hidden text-xs font-medium sm:inline">Home</span>
           </Link>
 
           <div className="h-5 w-px bg-white/10" />
@@ -78,12 +87,36 @@ export default function LearnPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Live Rank & XP Pill */}
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs transition hover:border-cyan-400/40"
+            title="View full rank & achievements on Dashboard"
+          >
+            <Sparkles size={13} className="text-cyan-300" />
+            <span className="font-semibold text-white">{rankInfo.rank.name}</span>
+            <span className="font-mono text-[11px] text-cyan-300">
+              {gamificationState.xp} XP
+            </span>
+          </Link>
+
+          {/* Streak Badge */}
+          {gamificationState.streak.currentStreak > 0 && (
+            <div
+              className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-mono text-xs font-bold text-amber-300"
+              title={`${gamificationState.streak.currentStreak} day learning streak`}
+            >
+              <Flame size={14} className="fill-amber-400 text-amber-400" />
+              <span>{gamificationState.streak.currentStreak}d</span>
+            </div>
+          )}
+
           <Link
             href="/challenges"
-            className="flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-400/20 hover:text-white"
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-400/20 hover:text-white"
           >
             <Trophy size={14} />
-            <span>Assessment Mode</span>
+            <span>Challenges Hub</span>
           </Link>
 
           {mounted && progressStats.completed > 0 && (
@@ -93,201 +126,152 @@ export default function LearnPage() {
               title="Reset progress to start over"
             >
               <RotateCcw size={12} />
-              <span className="hidden sm:inline">Reset Progress</span>
+              <span className="hidden sm:inline">Reset</span>
             </button>
           )}
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 py-10 lg:py-14">
+      <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14">
         {/* Hero Section */}
-        <div className="mb-10">
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-400">
-            <Sparkles size={15} />
-            Interactive Quantum Path
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+              <Sparkles size={14} />
+              <span>Comprehensive 4-Level Curriculum</span>
+            </div>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
+              Quantum Computing Learning Path
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-400 leading-relaxed">
+              Step through physical principles, explore 3D statevectors in Quantum Lab, test conceptual understanding with deterministic quizzes, and master quantum algorithms.
+            </p>
           </div>
 
-          <h1 className="text-3xl font-bold tracking-tight text-white lg:text-5xl">
-            Learn quantum computing by doing.
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400 lg:text-base">
-            Don't just read equations. Construct real circuits, execute real Qiskit
-            simulations, inspect statevectors and Bloch spheres, and receive AI
-            tutoring from Quantum Copilot.
-          </p>
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1.5 self-start rounded-xl border border-white/10 bg-[#070c14] p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("tree")}
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                viewMode === "tree"
+                  ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <GitBranch size={13} />
+              <span>Progression Tree</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                viewMode === "grid"
+                  ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <LayoutGrid size={13} />
+              <span>All Lessons</span>
+            </button>
+          </div>
         </div>
 
-        {/* Intelligent Progress Card */}
-        <section className="mb-10 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-white/[0.03] to-white/[0.01] p-6 shadow-lg">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Global Progress Overview Banner */}
+        <div className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-r from-cyan-950/20 via-[#070c14] to-[#070c14] p-6 shadow-lg">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                  Your Curriculum Progress
+                <span className="font-semibold text-white">Curriculum Coherence</span>
+                <span className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                  {progressStats.percentage}% Complete
                 </span>
-                {progressStats.percentage === 100 && (
-                  <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                    Mastery Achieved 🏆
-                  </span>
-                )}
               </div>
-
-              <div className="mt-1 text-2xl font-bold">
-                {mounted ? (
-                  <span>
-                    {progressStats.completed} of {lessons.length} Lessons Completed
-                  </span>
-                ) : (
-                  <span>Loading curriculum...</span>
-                )}
-              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                {progressStats.completed} of {progressStats.total} modules mastered across 4 levels.
+              </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="font-mono text-2xl font-bold text-cyan-400">
-                  {mounted ? `${progressStats.percentage}%` : "0%"}
-                </div>
-                <div className="text-[10px] text-slate-400">Completion rate</div>
-              </div>
-            </div>
+            {activeLesson && (
+              <Link
+                href={`/learn/${activeLesson.id}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-4 py-2.5 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
+              >
+                <span>Continue: {activeLesson.title}</span>
+                <ArrowRight size={13} />
+              </Link>
+            )}
           </div>
 
           {/* Progress Bar */}
-          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/5">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-emerald-300 transition-all duration-700"
-              style={{
-                width: mounted ? `${progressStats.percentage}%` : "0%",
-              }}
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 transition-all duration-700"
+              style={{ width: `${Math.max(progressStats.percentage, 4)}%` }}
             />
           </div>
+        </div>
 
-          {/* Sequential Guidance Subtext */}
-          <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-slate-400">
-            <span>
-              {progressStats.percentage === 100
-                ? "All quantum foundational milestones achieved! Test your skills in Assessment Mode."
-                : "Follow the sequential lessons or explore any topic at your own pace."}
-            </span>
+        {/* Learning Path Presentation */}
+        <div className="mt-12">
+          {viewMode === "tree" ? (
+            <LearningPathTree
+              completedLessons={completedLessons}
+              activeLessonId={activeLesson?.id}
+            />
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {lessons.map((lesson) => {
+                const isCompleted = completedLessons.includes(lesson.id);
+                const isCurrent = activeLesson?.id === lesson.id;
 
-            <Link
-              href="/challenges"
-              className="mt-2 text-cyan-400 hover:underline sm:mt-0"
-            >
-              View Challenge Assessment Hub →
-            </Link>
-          </div>
-        </section>
-
-        {/* Sequential Lessons List */}
-        <div className="space-y-4">
-          {lessons.map((lesson, index) => {
-            const status = mounted
-              ? getLessonStatus(lesson.id, completedLessons, allLessonIds)
-              : "available";
-            const isCompleted = status === "completed";
-            const isCurrent = status === "current";
-
-            return (
-              <Link
-                key={lesson.id}
-                href={`/learn/${lesson.id}`}
-                className="group block"
-              >
-                <article
-                  className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-200 lg:p-6 ${
-                    isCompleted
-                      ? "border-emerald-400/25 bg-emerald-950/[0.07] hover:border-emerald-400/40"
-                      : isCurrent
-                        ? "border-cyan-400/40 bg-cyan-950/[0.12] shadow-[0_0_30px_rgba(6,182,212,0.1)] hover:border-cyan-400/60"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <div className="flex items-start gap-4 lg:gap-5">
-                    {/* Lesson Number or Check icon */}
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-sm font-bold ${
-                        isCompleted
-                          ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
-                          : isCurrent
-                            ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-                            : "border-white/10 bg-white/5 text-slate-400"
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <Check size={20} className="stroke-[2.5]" />
-                      ) : (
-                        lesson.number
-                      )}
-                    </div>
-
-                    {/* Lesson Details */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <h2 className="text-lg font-semibold text-white group-hover:text-cyan-200">
-                          {lesson.title}
-                        </h2>
-
-                        {isCompleted && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
-                            <CheckCircle2 size={12} />
-                            Completed
-                          </span>
-                        )}
-
-                        {isCurrent && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/15 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-300 animate-pulse">
-                            <Flame size={12} />
-                            Next Up
-                          </span>
-                        )}
-
-                        <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] text-slate-400">
-                          {lesson.difficulty}
+                return (
+                  <Link
+                    key={lesson.id}
+                    href={`/learn/${lesson.id}`}
+                    className={`group relative flex flex-col justify-between rounded-2xl border p-5 transition ${
+                      isCompleted
+                        ? "border-emerald-500/30 bg-gradient-to-br from-emerald-950/15 via-[#070c14] to-[#070c14]"
+                        : isCurrent
+                        ? "border-cyan-400/60 bg-gradient-to-br from-cyan-950/20 via-[#070c14] to-[#070c14] shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                        : "border-white/10 bg-[#070c14] hover:border-cyan-400/30"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-semibold text-slate-400">
+                          #{String(lesson.number).padStart(2, "0")} · {lesson.level.split(":")[0]}
                         </span>
+                        {isCompleted && <CheckCircle2 size={16} className="text-emerald-400" />}
+                        {isCurrent && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-300 animate-pulse">
+                            <Play size={10} className="fill-cyan-300" />
+                          </span>
+                        )}
                       </div>
 
-                      <p className="mt-1 text-xs font-medium text-cyan-400/90">
+                      <h3 className="mt-3 text-base font-bold text-white group-hover:text-cyan-200 transition">
+                        {lesson.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-400 line-clamp-2">
                         {lesson.subtitle}
                       </p>
-
-                      <p className="mt-2 text-xs leading-relaxed text-slate-300 lg:text-sm">
-                        {lesson.description}
-                      </p>
-
-                      <div className="mt-3.5 flex flex-wrap items-center gap-4 text-xs text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Clock3 size={13} />
-                          {lesson.duration}
-                        </span>
-
-                        <span className="font-mono text-[11px] text-slate-400">
-                          Task: {lesson.task}
-                        </span>
-                      </div>
                     </div>
 
-                    {/* CTA Arrow */}
-                    <div className="flex shrink-0 self-center">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
-                          isCompleted
-                            ? "border-emerald-400/20 text-emerald-400/60 group-hover:border-emerald-400/40 group-hover:text-emerald-300"
-                            : isCurrent
-                              ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300 group-hover:scale-105 group-hover:bg-cyan-400/20"
-                              : "border-white/10 text-slate-500 group-hover:border-white/25 group-hover:text-white"
-                        }`}
-                      >
-                        <ArrowRight size={17} />
-                      </div>
+                    <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-3 text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Clock3 size={12} />
+                        {lesson.duration}
+                      </span>
+                      <span className="font-mono font-semibold text-cyan-300">
+                        +{lesson.xpReward} XP
+                      </span>
                     </div>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </main>

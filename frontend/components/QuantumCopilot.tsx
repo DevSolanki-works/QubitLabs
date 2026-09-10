@@ -14,6 +14,7 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
+import { recordCopilotInquiry } from "@/lib/gamification";
 
 type CopilotMode = "explain" | "debug" | "improve";
 
@@ -221,6 +222,7 @@ export default function QuantumCopilot({
             "I couldn't generate an explanation. Try asking the question another way.",
         },
       ]);
+      recordCopilotInquiry();
     } catch (err) {
       lastFailedQuestion.current = text;
       setError(

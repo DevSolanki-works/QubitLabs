@@ -27,6 +27,7 @@ import ChallengeCompletionCard from "@/components/ChallengeCompletionCard";
 import { getChallengeById, getChallengeForLesson } from "@/lib/challenges";
 import { getLessonById, getNextLesson } from "@/lib/lessons";
 import { markLessonComplete } from "@/lib/progress";
+import { recordSimulation, awardXP } from "@/lib/gamification";
 import { validateChallenge, ValidationResult } from "@/lib/challengeValidator";
 
 import {
@@ -147,6 +148,9 @@ function LabPage() {
       const data = (await response.json()) as SimulationResult;
       setResult(data);
 
+      // Record simulation in gamification
+      recordSimulation();
+
       // Evaluate active challenge with actual simulation results
       if (challenge) {
         const validation = validateChallenge(
@@ -160,6 +164,7 @@ function LabPage() {
 
         if (validation.passed && (lesson?.id || challenge.lessonId)) {
           markLessonComplete(lesson?.id ?? challenge.lessonId);
+          awardXP(75, `Completed Challenge: ${challenge.title}`);
         }
       }
     } catch (error) {
