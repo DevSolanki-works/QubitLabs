@@ -6,12 +6,16 @@ from pydantic import BaseModel, Field
 CopilotMode = Literal[
     "explain",
     "debug",
-    "improve",
+    "explore",
 ]
 
 
 class CopilotMessage(BaseModel):
-    role: Literal["user", "assistant"]
+    role: Literal[
+        "user",
+        "assistant",
+    ]
+
     content: str = Field(
         min_length=1,
         max_length=4000,
@@ -38,4 +42,5 @@ class CopilotRequest(BaseModel):
 
 class CopilotResponse(BaseModel):
     answer: str
+
     mode: CopilotMode
