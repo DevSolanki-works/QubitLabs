@@ -11,7 +11,6 @@ import {
   Trophy,
   Compass,
   Zap,
-  Headphones,
 } from "lucide-react";
 import { soundManager } from "@/lib/sound";
 
@@ -39,36 +38,29 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
   const [prob1, setProb1] = useState(50);
   const [stateStr, setStateStr] = useState("0.707|0⟩ + 0.707|1⟩");
   const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
-  const [isAudioActive, setIsAudioActive] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-
-    // Sync audio state
-    setIsAudioActive(soundManager.isMusicPlaying && !soundManager.isMuted);
-    const unsub = soundManager.subscribe(() => {
-      setIsAudioActive(soundManager.isMusicPlaying && !soundManager.isMuted);
-    });
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      unsub();
-    };
+    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   const handleGateClick = (gate: string) => {
     setActiveGate(gate);
     onApplyGate(gate);
 
-    // Provide tactile quantum audio feedback
+    // Provide topic-specific quantum audio feedback
     soundManager.unlockAudioContext();
     if (gate === "RESET") {
-      soundManager.playClick();
-    } else {
-      soundManager.playGate(gate);
+      soundManager.playQuantumTopic("ground_state");
+    } else if (gate === "H") {
+      soundManager.playQuantumTopic("gate_h");
+    } else if (gate === "X") {
+      soundManager.playQuantumTopic("gate_x");
+    } else if (gate === "Z") {
+      soundManager.playQuantumTopic("phase_flip");
     }
 
     if (gate === "H") {
@@ -127,48 +119,11 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base lg:text-lg text-[#9aa3b2] max-w-xl mb-4 sm:mb-6 leading-relaxed font-light">
+          <p className="text-sm sm:text-base lg:text-lg text-[#9aa3b2] max-w-xl mb-6 sm:mb-8 leading-relaxed font-light">
             Assemble quantum circuits with real-time feedback, simulate them deterministically with{" "}
             <strong className="text-white font-medium">IBM Qiskit Aer</strong>, inspect 3D Bloch spheres,
             and explore interactive algorithms.
           </p>
-
-          {/* Deep Space Audio Atmosphere Pill */}
-          <div className="mb-5 sm:mb-7 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => {
-                soundManager.unlockAudioContext();
-                soundManager.toggleMusic();
-              }}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono transition backdrop-blur-md cursor-pointer ${
-                isAudioActive
-                  ? "bg-cyan-950/60 border-cyan-400/50 text-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.25)]"
-                  : "bg-white/[0.04] border-white/10 text-slate-300 hover:text-white hover:bg-white/10 hover:border-cyan-400/40"
-              }`}
-              title={isAudioActive ? "Mute Deep Space Atmosphere" : "Turn On Deep Space Atmosphere"}
-            >
-              <Headphones
-                size={13}
-                className={isAudioActive ? "text-cyan-400 animate-pulse" : "text-slate-400"}
-              />
-              <span className="text-white/70">Atmosphere:</span>
-              <span className="font-semibold text-white">
-                {isAudioActive ? "Deep Dark Space (Active)" : "Enable Space Audio 🎧"}
-              </span>
-              {isAudioActive ? (
-                <div className="flex items-center gap-0.5 ml-1" aria-hidden="true">
-                  <span className="w-0.5 h-2.5 bg-cyan-400 animate-[pulse_0.6s_ease-in-out_infinite]" />
-                  <span className="w-0.5 h-3.5 bg-cyan-300 animate-[pulse_0.8s_ease-in-out_infinite_0.2s]" />
-                  <span className="w-0.5 h-2 bg-cyan-400 animate-[pulse_0.5s_ease-in-out_infinite_0.4s]" />
-                </div>
-              ) : (
-                <span className="text-[10px] text-cyan-400 uppercase tracking-wider bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-400/30 ml-1">
-                  Click to Play
-                </span>
-              )}
-            </button>
-          </div>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
             <Link

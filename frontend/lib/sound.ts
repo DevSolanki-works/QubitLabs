@@ -26,8 +26,8 @@ class QuantumSoundEngine {
 
   // Settings & State
   private _isMuted = false;
-  private _isMusicEnabled = true; // Default ON for immersive dark space experience
-  private _volume = 0.70; // 70% master volume for rich, audible space presence
+  private _isMusicEnabled = false; // Off by default: focused on interactive 3D topic audio
+  private _volume = 0.75; // 75% master volume for punchy, crisp topic sounds
   private listeners: Set<SoundListener> = new Set();
   private hasAutoUnlocked = false;
 
@@ -37,11 +37,8 @@ class QuantumSoundEngine {
         const savedMute = localStorage.getItem("qubitlabs_sound_muted");
         if (savedMute !== null) this._isMuted = savedMute === "true";
 
-        const savedMusic = localStorage.getItem("qubitlabs_music_enabled");
-        if (savedMusic !== null) this._isMusicEnabled = savedMusic === "true";
-
         const savedVol = localStorage.getItem("qubitlabs_volume");
-        if (savedVol !== null) this._volume = parseFloat(savedVol) || 0.70;
+        if (savedVol !== null) this._volume = parseFloat(savedVol) || 0.75;
       } catch {
         // Safe fallback
       }
@@ -265,8 +262,327 @@ class QuantumSoundEngine {
   }
 
   // ----------------------------------------------------------------------------
-  // Interactive Sound Effects (SFX)
+  // Interactive Sound Effects (SFX) & Quantum Topic 3D Audio
   // ----------------------------------------------------------------------------
+
+  /**
+   * Topic-specific procedural quantum sound effects triggered when clicking
+   * on 3D animations and quantum visualizations on the frontpage.
+   */
+  public playQuantumTopic(topic: string): void {
+    if (this._isMuted || !this.initContext() || !this.ctx || !this.sfxGain) return;
+
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+
+    const t0 = this.ctx.currentTime;
+
+    switch (topic) {
+      case "singularity":
+      case "hero": {
+        // Hero Quantum Singularity / Core: Harmonic chime arpeggio + sub resonance
+        const freqs = [130.81, 261.63, 523.25, 659.25, 1046.5]; // C3, C4, C5, E5, C6
+        freqs.forEach((f, idx) => {
+          if (!this.ctx || !this.sfxGain) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const noteTime = t0 + idx * 0.05;
+
+          osc.type = idx === 0 ? "sawtooth" : "sine";
+          osc.frequency.setValueAtTime(f, noteTime);
+
+          gain.gain.setValueAtTime(0.001, noteTime);
+          gain.gain.linearRampToValueAtTime(0.35 / (idx + 1) + 0.1, noteTime + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.55);
+
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+
+          osc.start(noteTime);
+          osc.stop(noteTime + 0.58);
+        });
+        break;
+      }
+
+      case "ground_state":
+      case "sphere0": {
+        // Pure Ground State |0⟩: Soothing fundamental + crystal octave shimmer
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(261.63, t0); // C4
+        osc.frequency.exponentialRampToValueAtTime(523.25, t0 + 0.22); // Glides to C5
+
+        gain.gain.setValueAtTime(0.40, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t0);
+        osc.stop(t0 + 0.36);
+
+        // Ground overtone
+        const overtone = this.ctx.createOscillator();
+        const overGain = this.ctx.createGain();
+        overtone.type = "sine";
+        overtone.frequency.setValueAtTime(523.25, t0);
+        overGain.gain.setValueAtTime(0.20, t0);
+        overGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+        overtone.connect(overGain);
+        overGain.connect(this.sfxGain);
+        overtone.start(t0);
+        overtone.stop(t0 + 0.29);
+        break;
+      }
+
+      case "excited_state":
+      case "sphere1": {
+        // Excited State |1⟩: Vibrant higher-energy bloom with shimmering modulation
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(523.25, t0); // C5
+        osc.frequency.exponentialRampToValueAtTime(880.0, t0 + 0.18); // Glides up to A5
+
+        gain.gain.setValueAtTime(0.42, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.32);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t0);
+        osc.stop(t0 + 0.34);
+
+        // High shimmer flare
+        const flare = this.ctx.createOscillator();
+        const flareGain = this.ctx.createGain();
+        flare.type = "sine";
+        flare.frequency.setValueAtTime(1046.5, t0 + 0.04);
+        flareGain.gain.setValueAtTime(0.001, t0 + 0.04);
+        flareGain.gain.linearRampToValueAtTime(0.25, t0 + 0.08);
+        flareGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.30);
+        flare.connect(flareGain);
+        flareGain.connect(this.sfxGain);
+        flare.start(t0 + 0.04);
+        flare.stop(t0 + 0.32);
+        break;
+      }
+
+      case "entanglement":
+      case "bridge": {
+        // Quantum Entanglement Filament Bridge: Intertwined dual-frequency resonance
+        const oscA = this.ctx.createOscillator();
+        const oscB = this.ctx.createOscillator();
+        const gainA = this.ctx.createGain();
+        const gainB = this.ctx.createGain();
+
+        oscA.type = "sine";
+        oscA.frequency.setValueAtTime(440, t0); // A4
+        oscA.frequency.exponentialRampToValueAtTime(659.25, t0 + 0.24); // Glides to E5
+
+        oscB.type = "sine";
+        oscB.frequency.setValueAtTime(659.25, t0); // E5
+        oscB.frequency.exponentialRampToValueAtTime(440, t0 + 0.24); // Glides down to A4
+
+        gainA.gain.setValueAtTime(0.35, t0);
+        gainA.gain.exponentialRampToValueAtTime(0.001, t0 + 0.36);
+
+        gainB.gain.setValueAtTime(0.35, t0);
+        gainB.gain.exponentialRampToValueAtTime(0.001, t0 + 0.36);
+
+        oscA.connect(gainA);
+        gainA.connect(this.sfxGain);
+        oscB.connect(gainB);
+        gainB.connect(this.sfxGain);
+
+        oscA.start(t0);
+        oscB.start(t0);
+        oscA.stop(t0 + 0.38);
+        oscB.stop(t0 + 0.38);
+        break;
+      }
+
+      case "gate_h": {
+        // Hadamard Superposition: Equal amplitude dual chord split
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        const gain2 = this.ctx.createGain();
+
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(440, t0);
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(659.25, t0);
+
+        gain1.gain.setValueAtTime(0.38, t0);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+        gain2.gain.setValueAtTime(0.38, t0);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+
+        osc1.connect(gain1);
+        gain1.connect(this.sfxGain);
+        osc2.connect(gain2);
+        gain2.connect(this.sfxGain);
+
+        osc1.start(t0);
+        osc2.start(t0);
+        osc1.stop(t0 + 0.30);
+        osc2.stop(t0 + 0.30);
+        break;
+      }
+
+      case "gate_x": {
+        // Pauli-X Bit Flip: Snappy downward pitch snap
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(784, t0);
+        osc.frequency.exponentialRampToValueAtTime(196, t0 + 0.10);
+
+        gain.gain.setValueAtTime(0.48, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.15);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t0);
+        osc.stop(t0 + 0.16);
+        break;
+      }
+
+      case "phase_flip":
+      case "gate_z": {
+        // Pauli-Z Phase Flip: High crystalline tick
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1046.5, t0);
+        osc.frequency.exponentialRampToValueAtTime(880, t0 + 0.12);
+
+        gain.gain.setValueAtTime(0.40, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t0);
+        osc.stop(t0 + 0.19);
+        break;
+      }
+
+      case "cnot":
+      case "gate_cnot": {
+        // CNOT Entangler Strike: Control note + target chime
+        const ctrl = this.ctx.createOscillator();
+        const ctrlGain = this.ctx.createGain();
+        ctrl.type = "sine";
+        ctrl.frequency.setValueAtTime(523.25, t0);
+        ctrlGain.gain.setValueAtTime(0.38, t0);
+        ctrlGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.14);
+        ctrl.connect(ctrlGain);
+        ctrlGain.connect(this.sfxGain);
+        ctrl.start(t0);
+        ctrl.stop(t0 + 0.15);
+
+        const tgt = this.ctx.createOscillator();
+        const tgtGain = this.ctx.createGain();
+        tgt.type = "sine";
+        tgt.frequency.setValueAtTime(1046.5, t0 + 0.05);
+        tgtGain.gain.setValueAtTime(0.35, t0 + 0.05);
+        tgtGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+        tgt.connect(tgtGain);
+        tgtGain.connect(this.sfxGain);
+        tgt.start(t0 + 0.05);
+        tgt.stop(t0 + 0.26);
+        break;
+      }
+
+      case "qpu_chip":
+      case "chip": {
+        // Quantum Processor QPU: Resonant superconducting microwave ring
+        const osc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(880, t0);
+        osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.16);
+
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(1100, t0);
+        filter.Q.setValueAtTime(6.0, t0);
+
+        gain.gain.setValueAtTime(0.42, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.26);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain);
+
+        osc.start(t0);
+        osc.stop(t0 + 0.28);
+        break;
+      }
+
+      case "wave_interference":
+      case "wave": {
+        // Wavepacket Probability Interference: Dual beating frequencies with resonant sweep
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(330, t0);
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(334.5, t0);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(450, t0);
+        filter.frequency.linearRampToValueAtTime(900, t0 + 0.20);
+        filter.frequency.exponentialRampToValueAtTime(200, t0 + 0.45);
+
+        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.linearRampToValueAtTime(0.45, t0 + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.48);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain);
+
+        osc1.start(t0);
+        osc2.start(t0);
+        osc1.stop(t0 + 0.50);
+        osc2.stop(t0 + 0.50);
+        break;
+      }
+
+      case "bloch_sphere":
+      case "bloch": {
+        // 3D Bloch Sphere State Vector Rotation
+        const freqs = [392.0, 523.25, 783.99]; // G4, C5, G5
+        freqs.forEach((f, idx) => {
+          if (!this.ctx || !this.sfxGain) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const noteTime = t0 + idx * 0.06;
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, noteTime);
+
+          gain.gain.setValueAtTime(0.35, noteTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+
+          osc.start(noteTime);
+          osc.stop(noteTime + 0.38);
+        });
+        break;
+      }
+
+      default: {
+        this.playGate(topic);
+        break;
+      }
+    }
+  }
 
   /**
    * Tactile audio feedback when placing or selecting a quantum gate
