@@ -12,6 +12,7 @@ import {
   CircuitOperation,
   QuantumCircuit,
 } from "@/lib/quantum";
+import { soundManager } from "@/lib/sound";
 
 interface CircuitGridProps {
   circuit: QuantumCircuit;
@@ -58,6 +59,8 @@ export default function CircuitGrid({
     row: number,
     column: number
   ) => {
+    soundManager.playGate(gate);
+
     if (
       gate === "CNOT"
     ) {
@@ -100,6 +103,7 @@ export default function CircuitGrid({
   };
 
   const deleteGate = (id: string) => {
+    soundManager.playClick();
     setCircuit((current) =>
       removeOperation(current, id)
     );
