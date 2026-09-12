@@ -160,7 +160,12 @@ export default function AudioController() {
       )}
 
       {/* Floating Pill Trigger */}
-      <div className="flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-[#080d19]/90 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-cyan-500/50">
+      <div className="relative flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-[#080d19]/90 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-cyan-500/50">
+        {!isMusicPlaying && (
+          <div className="absolute -top-7 right-2 whitespace-nowrap rounded-md bg-cyan-400 px-2 py-0.5 text-[10px] font-mono text-black font-bold shadow-lg animate-bounce pointer-events-none">
+            Space Audio 🎧
+          </div>
+        )}
         {/* Generative Deep Space Button */}
         <button
           onClick={handleToggleMusic}

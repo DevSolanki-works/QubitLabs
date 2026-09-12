@@ -115,10 +115,36 @@ class QuantumSoundEngine {
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.setValueAtTime(0.70, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
+
+      // Visibility change listener to handle tab switching
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+          if (
+            document.visibilityState === "visible" &&
+            this.ctx &&
+            this.ctx.state === "suspended" &&
+            this._isMusicEnabled &&
+            !this._isMuted
+          ) {
+            this.ctx.resume().catch(() => {});
+          }
+        });
+      }
     }
 
     if (this.ctx.state === "suspended") {
-      this.ctx.resume();
+      this.ctx
+        .resume()
+        .then(() => {
+          if (
+            this._isMusicEnabled &&
+            !this._isMuted &&
+            this.droneOscillators.length === 0
+          ) {
+            this.startAmbientMusic();
+          }
+        })
+        .catch(() => {});
     }
 
     return true;
@@ -130,8 +156,23 @@ class QuantumSoundEngine {
   public unlockAudioContext(): void {
     this.hasAutoUnlocked = true;
     if (this.initContext()) {
-      if (this._isMusicEnabled && !this._isMuted) {
-        this.startAmbientMusic();
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx
+          .resume()
+          .then(() => {
+            if (this._isMusicEnabled && !this._isMuted) {
+              this.startAmbientMusic();
+            }
+          })
+          .catch(() => {});
+      } else {
+        if (
+          this._isMusicEnabled &&
+          !this._isMuted &&
+          this.droneOscillators.length === 0
+        ) {
+          this.startAmbientMusic();
+        }
       }
     }
   }
@@ -191,9 +232,28 @@ class QuantumSoundEngine {
   }
 
   public toggleMusic(): void {
-    this.unlockAudioContext();
     this._isMusicEnabled = !this._isMusicEnabled;
     if (this._isMusicEnabled) {
+      if (this._isMuted) {
+        this._isMuted = false;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("qubitlabs_sound_muted", "false");
+        }
+      }
+      if (this._volume < 0.5) {
+        this._volume = 0.70;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("qubitlabs_volume", "0.70");
+        }
+      }
+      if (this.masterGain && this.ctx) {
+        this.masterGain.gain.setTargetAtTime(
+          this._volume,
+          this.ctx.currentTime,
+          0.05
+        );
+      }
+      this.unlockAudioContext();
       this.startAmbientMusic();
     } else {
       this.stopAmbientMusic();
