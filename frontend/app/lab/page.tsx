@@ -29,7 +29,6 @@ import { getLessonById, getNextLesson } from "@/lib/lessons";
 import { markLessonComplete } from "@/lib/progress";
 import { recordSimulation, awardXP } from "@/lib/gamification";
 import { validateChallenge, ValidationResult } from "@/lib/challengeValidator";
-import { soundManager } from "@/lib/sound";
 
 import {
   addColumn,
@@ -125,7 +124,6 @@ function LabPage() {
   const runCircuit = async () => {
     setRunning(true);
     setErrorMessage(null);
-    soundManager.playSimulate();
 
     try {
       const apiUrl =
@@ -165,15 +163,11 @@ function LabPage() {
         setChallengeComplete(validation.passed);
 
         if (validation.passed && (lesson?.id || challenge.lessonId)) {
-          soundManager.playSuccess();
           markLessonComplete(lesson?.id ?? challenge.lessonId);
           awardXP(75, `Completed Challenge: ${challenge.title}`);
-        } else if (!validation.passed) {
-          soundManager.playError();
         }
       }
     } catch (error) {
-      soundManager.playError();
       console.error("Simulation error:", error);
       setErrorMessage(
         error instanceof Error
@@ -189,7 +183,6 @@ function LabPage() {
   // Reset circuit
   // --------------------------------------------------
   const resetCircuit = () => {
-    soundManager.playClick();
     setCircuit(createEmptyCircuit(circuit.numQubits, circuit.numColumns));
     setResult(null);
     setChallengeComplete(false);

@@ -15,7 +15,6 @@ import {
   User,
 } from "lucide-react";
 import { recordCopilotInquiry } from "@/lib/gamification";
-import { soundManager } from "@/lib/sound";
 
 type CopilotMode = "explain" | "debug" | "improve";
 
@@ -173,8 +172,6 @@ export default function QuantumCopilot({
       content: text,
     };
 
-    soundManager.playClick();
-
     const nextMessages = [...messages, userMessage];
 
     setMessages(nextMessages);
@@ -226,9 +223,7 @@ export default function QuantumCopilot({
         },
       ]);
       recordCopilotInquiry();
-      soundManager.playCopilotMessage();
     } catch (err) {
-      soundManager.playError();
       lastFailedQuestion.current = text;
       setError(
         err instanceof Error

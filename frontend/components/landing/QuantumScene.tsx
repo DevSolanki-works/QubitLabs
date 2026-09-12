@@ -3,7 +3,6 @@
 import React, { useRef, useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { QuantumObjects } from './QuantumObjects'
-import { soundManager } from '@/lib/sound'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -18,18 +17,6 @@ interface QuantumSceneProps {
 
 export function QuantumScene({ scrollContainerRef, blochGate = 'NONE' }: QuantumSceneProps) {
   const progressRef = useRef(0)
-
-  const handleSceneClick = () => {
-    const p = progressRef.current
-    let topic = 'singularity'
-    if (p < 0.12) topic = 'singularity'
-    else if (p < 0.32) topic = 'ground_state'
-    else if (p < 0.50) topic = 'entanglement'
-    else if (p < 0.70) topic = 'gate_h'
-    else if (p < 0.88) topic = 'wave_interference'
-    else topic = 'bloch_sphere'
-    soundManager.playQuantumTopic(topic)
-  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -73,8 +60,7 @@ export function QuantumScene({ scrollContainerRef, blochGate = 'NONE' }: Quantum
 
   return (
     <div
-      onClick={handleSceneClick}
-      className="fixed inset-0 w-full h-full h-[100dvh] z-[1] pointer-events-auto bg-[#07080c] cursor-pointer"
+      className="fixed inset-0 w-full h-full h-[100dvh] z-[1] pointer-events-auto bg-[#07080c]"
     >
       <Canvas
         camera={{ position: [0, 0, 7.2], fov: 45 }}

@@ -9,7 +9,6 @@ import {
   Square,
   Triangle,
 } from "lucide-react";
-import { soundManager } from "@/lib/sound";
 
 interface GatePaletteProps {
   onGateSelect: (gate: string) => void;
@@ -76,10 +75,9 @@ export default function GatePalette({
                 gate.type
               );
             }}
-            onClick={() => {
-              soundManager.playGate(gate.type);
-              onGateSelect(gate.type);
-            }}
+            onClick={() =>
+              onGateSelect(gate.type)
+            }
             title={gate.label}
             className="group relative flex h-14 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.025] transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.06] active:scale-95"
           >

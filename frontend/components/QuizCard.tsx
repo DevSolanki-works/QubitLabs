@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, HelpCircle, Award, RotateCcw, ArrowRight, Sparkles } from "lucide-react";
 import { getQuizForLesson, QuizQuestion } from "@/lib/quizzes";
 import { recordQuizSubmission, getGamificationState } from "@/lib/gamification";
-import { soundManager } from "@/lib/sound";
 
 type QuizCardProps = {
   lessonId: string;
@@ -35,7 +34,6 @@ export default function QuizCard({ lessonId, onQuizComplete }: QuizCardProps) {
 
   const handleSelect = (questionIndex: number, optionIndex: number) => {
     if (submitted) return;
-    soundManager.playClick();
     setSelectedAnswers((prev) => ({
       ...prev,
       [questionIndex]: optionIndex,
@@ -61,19 +59,12 @@ export default function QuizCard({ lessonId, onQuizComplete }: QuizCardProps) {
     setXpEarned(result.xpEarned);
     setIsPerfect(result.isPerfect);
 
-    if (result.passed) {
-      soundManager.playSuccess();
-    } else {
-      soundManager.playError();
-    }
-
     if (onQuizComplete) {
       onQuizComplete(result.passed, correctCount, quiz.questions.length);
     }
   };
 
   const handleReset = () => {
-    soundManager.playClick();
     setSelectedAnswers({});
     setSubmitted(false);
     setScore(0);

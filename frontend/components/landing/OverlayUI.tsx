@@ -12,7 +12,6 @@ import {
   Compass,
   Zap,
 } from "lucide-react";
-import { soundManager } from "@/lib/sound";
 
 function SlideFooter({ hintText = "SCROLL", mobileHintText }: { hintText?: string; mobileHintText?: string }) {
   return (
@@ -50,18 +49,6 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
   const handleGateClick = (gate: string) => {
     setActiveGate(gate);
     onApplyGate(gate);
-
-    // Provide topic-specific quantum audio feedback
-    soundManager.unlockAudioContext();
-    if (gate === "RESET") {
-      soundManager.playQuantumTopic("ground_state");
-    } else if (gate === "H") {
-      soundManager.playQuantumTopic("gate_h");
-    } else if (gate === "X") {
-      soundManager.playQuantumTopic("gate_x");
-    } else if (gate === "Z") {
-      soundManager.playQuantumTopic("phase_flip");
-    }
 
     if (gate === "H") {
       setProb0(50);
@@ -128,7 +115,6 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
             <Link
               href="/learn"
-              onClick={() => soundManager.playClick()}
               className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-300 text-[#07080c] font-bold text-xs sm:text-sm hover:opacity-95 transition-all hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] pointer-events-auto cursor-pointer flex items-center gap-2"
             >
               <span>Start Learning</span>
@@ -137,7 +123,6 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
 
             <Link
               href="/lab"
-              onClick={() => soundManager.playClick()}
               className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full border border-cyan-400/40 text-cyan-300 font-medium text-xs sm:text-sm hover:bg-cyan-500/10 hover:border-cyan-400/70 transition-all backdrop-blur-sm pointer-events-auto cursor-pointer flex items-center gap-2"
             >
               <FlaskConical size={15} />
@@ -147,7 +132,6 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
 
             <Link
               href="/challenges"
-              onClick={() => soundManager.playClick()}
               className="hidden sm:inline-flex px-5 py-3 sm:py-3.5 rounded-full border border-violet-400/30 text-violet-300 font-medium text-xs sm:text-sm hover:bg-violet-500/10 transition-all backdrop-blur-sm pointer-events-auto cursor-pointer items-center gap-1.5"
             >
               <Trophy size={14} />
@@ -156,7 +140,6 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
 
             <Link
               href="/dashboard"
-              onClick={() => soundManager.playClick()}
               className="hidden sm:inline-flex px-5 py-3 sm:py-3.5 rounded-full border border-white/10 text-slate-300 font-medium text-xs sm:text-sm hover:bg-white/5 transition-all backdrop-blur-sm pointer-events-auto cursor-pointer items-center gap-1.5"
             >
               <Compass size={14} />
@@ -181,7 +164,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="CLICK 3D CORE FOR QUANTUM AUDIO · SCROLL TO EXPLORE" mobileHintText="TAP 3D CORE FOR AUDIO" />
+        <SlideFooter hintText="SCROLL TO EXPLORE" />
       </section>
 
       {/* ----------------- SECTION 2: SUPERPOSITION ----------------- */}
@@ -213,7 +196,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="CLICK 3D QUBIT SPHERES FOR AUDIO" mobileHintText="TAP SPHERES FOR AUDIO" />
+        <SlideFooter hintText="HOVER 3D SPHERES TO INTERACT" mobileHintText="TAP SPHERES" />
       </section>
 
       {/* ----------------- SECTION 3: ENTANGLEMENT ----------------- */}
@@ -245,7 +228,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="CLICK QUANTUM BRIDGE FOR AUDIO" mobileHintText="TAP BRIDGE FOR AUDIO" />
+        <SlideFooter hintText="HOVER FILAMENT TO ACCELERATE" mobileHintText="CONNECTED QUBITS" />
       </section>
 
       {/* ----------------- SECTION 4: CIRCUIT DESIGN ----------------- */}
@@ -287,7 +270,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="CLICK GATES & CHIP FOR AUDIO" mobileHintText="TAP GATES FOR AUDIO" />
+        <SlideFooter hintText="HOVER GATES & CHIP TO INSPECT" mobileHintText="SUPERCONDUCTING CHIP" />
       </section>
 
       {/* ----------------- SECTION 5: DATA / COMPUTATION ----------------- */}
@@ -319,7 +302,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="CLICK PROBABILITY WAVE FOR AUDIO" mobileHintText="TAP WAVE FOR AUDIO" />
+        <SlideFooter hintText="MOVE CURSOR OVER MESH FOR RIPPLES" mobileHintText="INTERFERENCE MANIFOLD" />
       </section>
 
       {/* ----------------- SECTION 6: THE APPLICATION (INTERACTIVE) ----------------- */}

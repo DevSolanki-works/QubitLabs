@@ -4,7 +4,6 @@ import React, { useRef, useMemo, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
-import { soundManager } from '@/lib/sound'
 
 // --- Custom Shaders ---
 
@@ -743,10 +742,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
         {/* SOLID INVISIBLE HITBOX (Catches 100% of raycasts across full volume) */}
         <mesh
           material={hitMat}
-          onClick={(e) => {
-            e.stopPropagation()
-            soundManager.playQuantumTopic('singularity')
-          }}
           onPointerOver={(e) => {
             e.stopPropagation()
             setHoverHero(true)
@@ -810,10 +805,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
           {/* SOLID INVISIBLE HITBOX */}
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('ground_state')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverSphere0(true)
@@ -879,10 +870,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
           {/* SOLID INVISIBLE HITBOX */}
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('excited_state')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverSphere1(true)
@@ -948,10 +935,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
           {/* SOLID INVISIBLE HITBOX */}
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('entanglement')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverBridge(true)
@@ -1000,10 +983,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
           {/* SOLID INVISIBLE HITBOX */}
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('gate_h')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverGateH(true)
@@ -1038,10 +1017,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
           <mesh
             material={hitMat}
             position={[0, -0.6, 0]}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('cnot')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverCNOT(true)
@@ -1086,10 +1061,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
         <group ref={gateXRef} position={[1.4, -0.4, 0]}>
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('gate_x')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverGateX(true)
@@ -1123,10 +1094,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
         <group ref={chipRef} position={[2.2, 1.2, 0.4]} rotation={[0.2, -0.3, 0.1]}>
           <mesh
             material={hitMat}
-            onClick={(e) => {
-              e.stopPropagation()
-              soundManager.playQuantumTopic('qpu_chip')
-            }}
             onPointerOver={(e) => {
               e.stopPropagation()
               setHoverChip(true)
@@ -1172,10 +1139,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
       <group ref={waveGroupRef} position={[0, -0.3, 0]}>
         <mesh
           material={waveMat}
-          onClick={(e) => {
-            e.stopPropagation()
-            soundManager.playQuantumTopic('wave_interference')
-          }}
           onPointerMove={(e) => {
             e.stopPropagation()
             document.body.style.cursor = 'crosshair'
@@ -1194,10 +1157,6 @@ export function QuantumObjects({ progressRef, blochGate = 'NONE' }: QuantumObjec
         {/* SOLID INVISIBLE HITBOX FOR FULL SPHERE */}
         <mesh
           material={hitMat}
-          onClick={(e) => {
-            e.stopPropagation()
-            soundManager.playQuantumTopic('bloch_sphere')
-          }}
           onPointerOver={(e) => {
             e.stopPropagation()
             setHoverBloch(true)
