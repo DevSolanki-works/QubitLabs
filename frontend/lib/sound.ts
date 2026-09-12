@@ -14,21 +14,25 @@ class QuantumSoundEngine {
   private musicGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
 
-  // Music state
-  private musicOscillators: OscillatorNode[] = [];
-  private musicLFO: OscillatorNode | null = null;
-  private musicFilter: BiquadFilterNode | null = null;
-  private chimeTimer: NodeJS.Timeout | null = null;
+  // Space Ambience Audio Graph nodes
+  private droneOscillators: OscillatorNode[] = [];
+  private padOscillators: OscillatorNode[] = [];
+  private windSource: AudioBufferSourceNode | null = null;
+  private windFilter: BiquadFilterNode | null = null;
+  private windLFO: OscillatorNode | null = null;
+  private padGain: GainNode | null = null;
+  private padLFO: OscillatorNode | null = null;
+  private sonarTimer: NodeJS.Timeout | null = null;
 
-  // Settings
+  // Settings & State
   private _isMuted = false;
-  private _isMusicEnabled = false;
-  private _volume = 0.35; // Default 35% master volume
+  private _isMusicEnabled = true; // Default ON for immersive dark space experience
+  private _volume = 0.70; // 70% master volume for rich, audible space presence
   private listeners: Set<SoundListener> = new Set();
+  private hasAutoUnlocked = false;
 
   constructor() {
     if (typeof window !== "undefined") {
-      // Load saved preferences
       try {
         const savedMute = localStorage.getItem("qubitlabs_sound_muted");
         if (savedMute !== null) this._isMuted = savedMute === "true";
@@ -37,15 +41,42 @@ class QuantumSoundEngine {
         if (savedMusic !== null) this._isMusicEnabled = savedMusic === "true";
 
         const savedVol = localStorage.getItem("qubitlabs_volume");
-        if (savedVol !== null) this._volume = parseFloat(savedVol) || 0.35;
+        if (savedVol !== null) this._volume = parseFloat(savedVol) || 0.70;
       } catch {
-        // LocalStorage might be disabled in private browsing
+        // Safe fallback
       }
+
+      // Register global interaction listeners to unlock AudioContext on first user gesture
+      this.attachUnlockListeners();
     }
   }
 
-  // Lazy initialize AudioContext on first user interaction
-  private initContext(): boolean {
+  /**
+   * Attaches one-time event listeners across the window to unlock Web Audio API
+   * in strict compliance with browser autoplay policies.
+   */
+  private attachUnlockListeners(): void {
+    if (typeof window === "undefined") return;
+
+    const unlock = () => {
+      if (this.hasAutoUnlocked) return;
+      this.unlockAudioContext();
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("scroll", unlock);
+    };
+
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("click", unlock, { passive: true });
+    window.addEventListener("touchstart", unlock, { passive: true });
+    window.addEventListener("keydown", unlock, { passive: true });
+    window.addEventListener("scroll", unlock, { passive: true });
+  }
+
+  // Lazy initialize AudioContext on user interaction
+  public initContext(): boolean {
     if (typeof window === "undefined") return false;
 
     if (!this.ctx) {
@@ -58,16 +89,16 @@ class QuantumSoundEngine {
 
       this.ctx = new AudioContextClass();
 
-      // Master Compressor to prevent any clipping/distortion
+      // Master Dynamics Compressor: Warm analog response, prevents clipping
       this.compressor = this.ctx.createDynamicsCompressor();
-      this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
-      this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
-      this.compressor.ratio.setValueAtTime(8, this.ctx.currentTime);
-      this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.compressor.threshold.setValueAtTime(-15, this.ctx.currentTime);
+      this.compressor.knee.setValueAtTime(20, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(5, this.ctx.currentTime);
+      this.compressor.attack.setValueAtTime(0.005, this.ctx.currentTime);
       this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
       this.compressor.connect(this.ctx.destination);
 
-      // Master Gain
+      // Master Gain (rich volume)
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(
         this._isMuted ? 0 : this._volume,
@@ -75,14 +106,14 @@ class QuantumSoundEngine {
       );
       this.masterGain.connect(this.compressor);
 
-      // SFX Sub-gain (fixed at 0.7 relative to master)
+      // SFX Sub-gain (punchy and responsive)
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
 
-      // Music Sub-gain (fixed at 0.35 relative to master for gentle ambiance)
+      // Music Sub-gain (immersive, deep dark space level)
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(0.70, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
     }
 
@@ -91,6 +122,18 @@ class QuantumSoundEngine {
     }
 
     return true;
+  }
+
+  /**
+   * Explicitly unlocks audio context and immediately starts the dark space soundscape if enabled
+   */
+  public unlockAudioContext(): void {
+    this.hasAutoUnlocked = true;
+    if (this.initContext()) {
+      if (this._isMusicEnabled && !this._isMuted) {
+        this.startAmbientMusic();
+      }
+    }
   }
 
   // ----------------------------------------------------------------------------
@@ -148,6 +191,7 @@ class QuantumSoundEngine {
   }
 
   public toggleMusic(): void {
+    this.unlockAudioContext();
     this._isMusicEnabled = !this._isMusicEnabled;
     if (this._isMusicEnabled) {
       this.startAmbientMusic();
@@ -448,131 +492,266 @@ class QuantumSoundEngine {
   }
 
   // ----------------------------------------------------------------------------
-  // Generative Quantum Ambient Soundscape ("Quantum Coherence Music")
+  // Deep Dark Space Generative Soundscape
   // ----------------------------------------------------------------------------
 
+  /**
+   * Generates a 4-second seamless procedural Pink Noise audio buffer
+   * for the cosmic stellar wind / interstellar vacuum atmosphere.
+   */
+  private createPinkNoiseBuffer(): AudioBuffer | null {
+    if (!this.ctx) return null;
+    const sampleRate = this.ctx.sampleRate;
+    const bufferSize = sampleRate * 4;
+    const buffer = this.ctx.createBuffer(2, bufferSize, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        data[i] = (b0 + b1 + b2 + white * 0.1) * 0.35;
+      }
+    }
+    return buffer;
+  }
+
+  /**
+   * Starts the Deep Dark Space Soundscape:
+   * 1. Multi-harmonic Sub & Low-Mid Dark Void Drone (audible on subwoofers & laptop speakers)
+   * 2. Cosmic Void Wind with modulated resonant bandpass filter
+   * 3. Hans Zimmer-style Ethereal Dark Space Pad Chords with gentle tidal breathing
+   * 4. Deep Space Pulsar / Sonar Echoes traversing the void
+   */
   public startAmbientMusic(): void {
     if (!this.initContext() || !this.ctx || !this.musicGain) return;
 
-    // If already playing, stop existing voices first
+    // Stop any existing active voices
     this.stopAmbientMusic();
 
     const t0 = this.ctx.currentTime;
 
-    // 1. Resonant Lowpass Filter with slow breathing LFO
-    this.musicFilter = this.ctx.createBiquadFilter();
-    this.musicFilter.type = "lowpass";
-    this.musicFilter.frequency.setValueAtTime(380, t0);
-    this.musicFilter.Q.setValueAtTime(3.5, t0);
+    // 1. Cosmic Stellar Wind / Void Atmosphere (Filtered Pink Noise)
+    const noiseBuffer = this.createPinkNoiseBuffer();
+    if (noiseBuffer) {
+      this.windSource = this.ctx.createBufferSource();
+      this.windSource.buffer = noiseBuffer;
+      this.windSource.loop = true;
 
-    // LFO to slowly sweep filter cutoff (0.04 Hz = 25 second gentle cycle)
-    this.musicLFO = this.ctx.createOscillator();
-    const lfoGain = this.ctx.createGain();
-    this.musicLFO.type = "sine";
-    this.musicLFO.frequency.setValueAtTime(0.04, t0);
-    lfoGain.gain.setValueAtTime(180, t0);
+      this.windFilter = this.ctx.createBiquadFilter();
+      this.windFilter.type = "bandpass";
+      this.windFilter.frequency.setValueAtTime(320, t0);
+      this.windFilter.Q.setValueAtTime(3.2, t0);
 
-    this.musicLFO.connect(lfoGain);
-    lfoGain.connect(this.musicFilter.frequency);
-    this.musicLFO.start(t0);
+      // Slow sweeping LFO (~26 second breathing cycle)
+      this.windLFO = this.ctx.createOscillator();
+      this.windLFO.type = "sine";
+      this.windLFO.frequency.setValueAtTime(0.038, t0);
 
-    this.musicFilter.connect(this.musicGain);
+      const windLFOGain = this.ctx.createGain();
+      windLFOGain.gain.setValueAtTime(190, t0); // Sweeps 130Hz - 510Hz
 
-    // 2. Harmonic Drone Voices (A-minor / Quantum Vacuum harmonics)
-    // - 55 Hz (A1 sub drone)
-    // - 55.25 Hz (binaural phase beat at 0.25 Hz for meditative immersion)
-    // - 110 Hz (A2 fundamental)
-    // - 164.81 Hz (E3 fifth)
-    // - 220 Hz (A3 octave)
-    const chordFrequencies = [55.0, 55.25, 110.0, 164.81, 220.0];
+      this.windLFO.connect(windLFOGain);
+      windLFOGain.connect(this.windFilter.frequency);
+      this.windLFO.start(t0);
 
-    chordFrequencies.forEach((freq, idx) => {
-      if (!this.ctx || !this.musicFilter) return;
+      const windGain = this.ctx.createGain();
+      windGain.gain.setValueAtTime(0.001, t0);
+      windGain.gain.linearRampToValueAtTime(0.26, t0 + 2.5);
 
+      this.windSource.connect(this.windFilter);
+      this.windFilter.connect(windGain);
+      windGain.connect(this.musicGain);
+
+      this.windSource.start(t0);
+    }
+
+    // 2. The Deep Void Drone (Rich Harmonics from 55Hz to 440Hz)
+    const droneSpecs: Array<{ f: number; type: OscillatorType; g: number }> = [
+      { f: 55.0, type: "sine", g: 0.42 }, // Sub A1
+      { f: 55.35, type: "sine", g: 0.38 }, // Binaural detuned A1 (slow 0.35Hz pulse)
+      { f: 110.0, type: "triangle", g: 0.32 }, // Fundamental A2 (rich on laptops)
+      { f: 164.81, type: "sine", g: 0.25 }, // Perfect 5th E3
+      { f: 220.0, type: "triangle", g: 0.20 }, // Octave A3
+      { f: 329.63, type: "sine", g: 0.14 }, // Warm 5th E4
+      { f: 440.0, type: "sine", g: 0.08 }, // Shimmer A4
+    ];
+
+    const droneFilter = this.ctx.createBiquadFilter();
+    droneFilter.type = "lowpass";
+    droneFilter.frequency.setValueAtTime(580, t0);
+    droneFilter.Q.setValueAtTime(2.0, t0);
+    droneFilter.connect(this.musicGain);
+
+    droneSpecs.forEach((spec) => {
+      if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
-      // Alternate waveforms for warm texture
-      osc.type = idx % 2 === 0 ? "sine" : "triangle";
-      osc.frequency.setValueAtTime(freq, t0);
+      osc.type = spec.type;
+      osc.frequency.setValueAtTime(spec.f, t0);
 
-      // Smooth fade-in over 2 seconds
-      oscGain.gain.setValueAtTime(0.0001, t0);
-      oscGain.gain.linearRampToValueAtTime(0.18 / (idx + 1), t0 + 2.5);
+      oscGain.gain.setValueAtTime(0.001, t0);
+      oscGain.gain.linearRampToValueAtTime(spec.g, t0 + 2.0);
 
       osc.connect(oscGain);
-      oscGain.connect(this.musicFilter);
+      oscGain.connect(droneFilter);
 
       osc.start(t0);
-      this.musicOscillators.push(osc);
+      this.droneOscillators.push(osc);
     });
 
-    // 3. Sporadic Crystalline Chimes (Quantum Fluctuation Overtones)
-    const pentatonicNotes = [523.25, 659.25, 783.99, 880.0, 1046.5, 1318.5]; // C5, E5, G5, A5, C6, E6
+    // 3. Ethereal Dark Space Pad Chords (Hans Zimmer Tidal Swells)
+    const padFrequencies = [110.0, 164.81, 261.63, 293.66];
+    this.padGain = this.ctx.createGain();
+    this.padGain.gain.setValueAtTime(0.001, t0);
+    this.padGain.gain.linearRampToValueAtTime(0.28, t0 + 3.0);
 
-    const triggerQuantumChime = () => {
+    const padFilter = this.ctx.createBiquadFilter();
+    padFilter.type = "lowpass";
+    padFilter.frequency.setValueAtTime(750, t0);
+    padFilter.Q.setValueAtTime(1.5, t0);
+    this.padGain.connect(padFilter);
+    padFilter.connect(this.musicGain);
+
+    padFrequencies.forEach((freq, idx) => {
+      if (!this.ctx || !this.padGain) return;
+      const osc = this.ctx.createOscillator();
+      osc.type = idx % 2 === 0 ? "sawtooth" : "triangle";
+      osc.frequency.setValueAtTime(freq, t0);
+
+      const voiceGain = this.ctx.createGain();
+      voiceGain.gain.setValueAtTime(0.12, t0);
+
+      osc.connect(voiceGain);
+      voiceGain.connect(this.padGain);
+
+      osc.start(t0);
+      this.padOscillators.push(osc);
+    });
+
+    // Modulate Pad Gain over 14 seconds for cosmic breathing
+    this.padLFO = this.ctx.createOscillator();
+    this.padLFO.type = "sine";
+    this.padLFO.frequency.setValueAtTime(0.07, t0);
+    const padLFOGain = this.ctx.createGain();
+    padLFOGain.gain.setValueAtTime(0.12, t0);
+    this.padLFO.connect(padLFOGain);
+    padLFOGain.connect(this.padGain.gain);
+    this.padLFO.start(t0);
+
+    // 4. Periodic Deep Space Pulsar / Sonar Echoes
+    const triggerSonarEcho = () => {
       if (!this._isMusicEnabled || !this.ctx || !this.musicGain) return;
 
       const now = this.ctx.currentTime;
-      const note =
-        pentatonicNotes[Math.floor(Math.random() * pentatonicNotes.length)];
+      const sonarPitches = [220.0, 261.63, 293.66, 329.63, 440.0];
+      const baseFreq =
+        sonarPitches[Math.floor(Math.random() * sonarPitches.length)];
 
-      const chimeOsc = this.ctx.createOscillator();
-      const chimeGain = this.ctx.createGain();
-      const chimeFilter = this.ctx.createBiquadFilter();
+      const pingOsc = this.ctx.createOscillator();
+      const pingGain = this.ctx.createGain();
+      const pingFilter = this.ctx.createBiquadFilter();
 
-      chimeOsc.type = "sine";
-      chimeOsc.frequency.setValueAtTime(note, now);
+      pingOsc.type = "sine";
+      pingOsc.frequency.setValueAtTime(baseFreq, now);
+      pingOsc.frequency.exponentialRampToValueAtTime(
+        baseFreq * 0.5,
+        now + 0.35
+      );
 
-      chimeFilter.type = "bandpass";
-      chimeFilter.frequency.setValueAtTime(note, now);
-      chimeFilter.Q.setValueAtTime(4.0, now);
+      pingFilter.type = "bandpass";
+      pingFilter.frequency.setValueAtTime(baseFreq, now);
+      pingFilter.Q.setValueAtTime(4.5, now);
 
-      chimeGain.gain.setValueAtTime(0.0001, now);
-      chimeGain.gain.linearRampToValueAtTime(0.09, now + 0.15);
-      chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+      pingGain.gain.setValueAtTime(0.001, now);
+      pingGain.gain.linearRampToValueAtTime(0.32, now + 0.08);
+      pingGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
 
-      chimeOsc.connect(chimeFilter);
-      chimeFilter.connect(chimeGain);
-      chimeGain.connect(this.musicGain);
+      pingOsc.connect(pingFilter);
+      pingFilter.connect(pingGain);
+      pingGain.connect(this.musicGain);
 
-      chimeOsc.start(now);
-      chimeOsc.stop(now + 3.6);
+      pingOsc.start(now);
+      pingOsc.stop(now + 2.3);
 
-      // Random delay between 4 to 8 seconds for organic breathing
-      const nextDelay = 4000 + Math.random() * 4500;
-      this.chimeTimer = setTimeout(triggerQuantumChime, nextDelay);
+      const echoOsc = this.ctx.createOscillator();
+      const echoGain = this.ctx.createGain();
+      echoOsc.type = "sine";
+      echoOsc.frequency.setValueAtTime(baseFreq * 0.75, now + 0.45);
+      echoGain.gain.setValueAtTime(0.001, now + 0.45);
+      echoGain.gain.linearRampToValueAtTime(0.14, now + 0.52);
+      echoGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
+
+      echoOsc.connect(pingFilter);
+      echoOsc.start(now + 0.45);
+      echoOsc.stop(now + 2.9);
+
+      const nextDelay = 7000 + Math.random() * 5000;
+      this.sonarTimer = setTimeout(triggerSonarEcho, nextDelay);
     };
 
-    // Schedule first chime after 2.5s
-    this.chimeTimer = setTimeout(triggerQuantumChime, 2500);
+    this.sonarTimer = setTimeout(triggerSonarEcho, 3500);
   }
 
   public stopAmbientMusic(): void {
-    if (this.chimeTimer) {
-      clearTimeout(this.chimeTimer);
-      this.chimeTimer = null;
+    if (this.sonarTimer) {
+      clearTimeout(this.sonarTimer);
+      this.sonarTimer = null;
     }
 
-    if (this.musicLFO) {
+    if (this.windLFO) {
       try {
-        this.musicLFO.stop();
-        this.musicLFO.disconnect();
+        this.windLFO.stop();
+        this.windLFO.disconnect();
       } catch {
-        // already stopped
+        // Safe ignore
       }
-      this.musicLFO = null;
+      this.windLFO = null;
     }
 
-    this.musicOscillators.forEach((osc) => {
+    if (this.windSource) {
+      try {
+        this.windSource.stop();
+        this.windSource.disconnect();
+      } catch {
+        // Safe ignore
+      }
+      this.windSource = null;
+    }
+
+    if (this.padLFO) {
+      try {
+        this.padLFO.stop();
+        this.padLFO.disconnect();
+      } catch {
+        // Safe ignore
+      }
+      this.padLFO = null;
+    }
+
+    this.droneOscillators.forEach((osc) => {
       try {
         osc.stop();
         osc.disconnect();
       } catch {
-        // already stopped
+        // Safe ignore
       }
     });
-    this.musicOscillators = [];
+    this.droneOscillators = [];
+
+    this.padOscillators.forEach((osc) => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch {
+        // Safe ignore
+      }
+    });
+    this.padOscillators = [];
   }
 }
 

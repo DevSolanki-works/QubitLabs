@@ -2,17 +2,38 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Atom, Menu, X, FlaskConical, GraduationCap, Trophy, Compass } from "lucide-react";
+import {
+  Atom,
+  Menu,
+  X,
+  FlaskConical,
+  GraduationCap,
+  Trophy,
+  Compass,
+  Headphones,
+} from "lucide-react";
+import { soundManager } from "@/lib/sound";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isAudioActive, setIsAudioActive] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    // Sync audio state
+    setIsAudioActive(soundManager.isMusicPlaying && !soundManager.isMuted);
+    const unsub = soundManager.subscribe(() => {
+      setIsAudioActive(soundManager.isMusicPlaying && !soundManager.isMuted);
+    });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      unsub();
+    };
   }, []);
 
   const closeMenu = () => setOpen(false);
@@ -80,7 +101,38 @@ export function LandingNavbar() {
         </ul>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Deep Space Audio Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.unlockAudioContext();
+              soundManager.toggleMusic();
+            }}
+            className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full border text-xs font-mono transition backdrop-blur-sm cursor-pointer ${
+              isAudioActive
+                ? "bg-cyan-500/15 border-cyan-400/40 text-cyan-300 shadow-[0_0_15px_rgba(0,240,255,0.25)]"
+                : "bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+            }`}
+            title={isAudioActive ? "Mute Space Audio" : "Play Deep Space Audio"}
+            aria-label="Toggle Deep Space Audio"
+          >
+            <Headphones size={13} className={isAudioActive ? "text-cyan-400 animate-pulse" : "text-white/40"} />
+            <span className="hidden sm:inline">
+              {isAudioActive ? "Space Audio: ON" : "Space Audio: OFF"}
+            </span>
+            <span className="sm:hidden text-[10px]">
+              {isAudioActive ? "AUDIO ON" : "AUDIO"}
+            </span>
+            {isAudioActive && (
+              <div className="flex items-center gap-0.5" aria-hidden="true">
+                <span className="w-0.5 h-2.5 bg-cyan-400 animate-[pulse_0.6s_ease-in-out_infinite]" />
+                <span className="w-0.5 h-3.5 bg-cyan-300 animate-[pulse_0.8s_ease-in-out_infinite_0.2s]" />
+                <span className="w-0.5 h-2 bg-cyan-400 animate-[pulse_0.5s_ease-in-out_infinite_0.4s]" />
+              </div>
+            )}
+          </button>
+
           <div
             className="hidden lg:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-[11px] font-mono text-[#00f0ff]"
             title="FastAPI Quantum Engine Online"
@@ -91,7 +143,7 @@ export function LandingNavbar() {
 
           <Link
             href="/lab"
-            className="px-5 py-2 rounded-full bg-white text-[#07080c] font-semibold text-xs sm:text-sm hover:bg-[#d8e2ff] transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.35)]"
+            className="px-4 sm:px-5 py-2 rounded-full bg-white text-[#07080c] font-semibold text-xs sm:text-sm hover:bg-[#d8e2ff] transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.35)]"
           >
             Launch Lab
           </Link>

@@ -13,8 +13,8 @@ import { soundManager } from "@/lib/sound";
 
 export default function AudioController() {
   const [isMuted, setIsMuted] = useState(false);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.35);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+  const [volume, setVolume] = useState(0.70);
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -60,7 +60,7 @@ export default function AudioController() {
             <div className="flex items-center gap-2">
               <Radio size={15} className="text-cyan-400 animate-pulse" />
               <span className="text-xs font-semibold tracking-wide text-white">
-                Quantum Audio Engine
+                Deep Space Audio Engine
               </span>
             </div>
             <button
@@ -86,9 +86,9 @@ export default function AudioController() {
                   <Headphones size={15} />
                 </div>
                 <div>
-                  <div className="font-medium text-white">Quantum Soundscape</div>
+                  <div className="font-medium text-white">Deep Space Atmosphere</div>
                   <div className="text-[10px] text-white/40">
-                    Generative ambient drone & chimes
+                    Cosmic wind, void drone & pulsar sonar
                   </div>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function AudioController() {
 
       {/* Floating Pill Trigger */}
       <div className="flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-[#080d19]/90 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-cyan-500/50">
-        {/* Generative Music Button */}
+        {/* Generative Deep Space Button */}
         <button
           onClick={handleToggleMusic}
           className={`relative flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
@@ -169,8 +169,8 @@ export default function AudioController() {
               ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.25)]"
               : "text-white/60 hover:bg-white/10 hover:text-white"
           }`}
-          title={isMusicPlaying ? "Pause Quantum Ambient Music" : "Play Quantum Ambient Music"}
-          aria-label={isMusicPlaying ? "Pause Quantum Ambient Music" : "Play Quantum Ambient Music"}
+          title={isMusicPlaying ? "Pause Deep Space Ambience" : "Play Deep Space Ambience"}
+          aria-label={isMusicPlaying ? "Pause Deep Space Ambience" : "Play Deep Space Ambience"}
         >
           {isMusicPlaying ? (
             <div className="flex items-center gap-0.5" aria-hidden="true">
@@ -183,7 +183,7 @@ export default function AudioController() {
             <Headphones size={13} className="text-white/70" />
           )}
           <span className="text-[11px] font-mono">
-            {isMusicPlaying ? "Soundscape On" : "Soundscape"}
+            {isMusicPlaying ? "Deep Space" : "Space Audio"}
           </span>
         </button>
 
