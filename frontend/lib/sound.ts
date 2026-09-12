@@ -27,24 +27,39 @@ class QuantumSoundEngine {
   // Settings & State
   private _isMuted = false;
   private _isMusicEnabled = false; // Off by default: focused on interactive 3D topic audio
-  private _volume = 0.75; // 75% master volume for punchy, crisp topic sounds
+  private _volume = 1.0; // 100% master volume for maximum clarity and punch
   private listeners: Set<SoundListener> = new Set();
   private hasAutoUnlocked = false;
 
   constructor() {
+    this._isMuted = false;
+    this._volume = 1.0;
+
     if (typeof window !== "undefined") {
       try {
-        const savedMute = localStorage.getItem("qubitlabs_sound_muted");
-        if (savedMute !== null) this._isMuted = savedMute === "true";
-
-        const savedVol = localStorage.getItem("qubitlabs_volume");
-        if (savedVol !== null) this._volume = parseFloat(savedVol) || 0.75;
+        localStorage.removeItem("qubitlabs_sound_muted");
+        localStorage.setItem("qubitlabs_volume", "1.0");
       } catch {
         // Safe fallback
       }
 
       // Register global interaction listeners to unlock AudioContext on first user gesture
       this.attachUnlockListeners();
+    }
+  }
+
+  /**
+   * Plays a high-fidelity studio WAV file directly via HTML5 Audio element.
+   * This provides a 100% reliable hardware media pipeline across all browsers.
+   */
+  public playWav(soundName: string, vol = 1.0): void {
+    if (typeof window === "undefined") return;
+    try {
+      const audio = new Audio(`/sounds/${soundName}.wav`);
+      audio.volume = Math.min(1.0, Math.max(0.0, vol));
+      audio.play().catch(() => {});
+    } catch {
+      // Audio element fallback
     }
   }
 
@@ -56,20 +71,18 @@ class QuantumSoundEngine {
     if (typeof window === "undefined") return;
 
     const unlock = () => {
-      if (this.hasAutoUnlocked) return;
       this.unlockAudioContext();
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("click", unlock);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("keydown", unlock);
-      window.removeEventListener("scroll", unlock);
+      try {
+        const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+        dummy.play().catch(() => {});
+      } catch {}
     };
 
-    window.addEventListener("pointerdown", unlock, { passive: true });
-    window.addEventListener("click", unlock, { passive: true });
-    window.addEventListener("touchstart", unlock, { passive: true });
-    window.addEventListener("keydown", unlock, { passive: true });
-    window.addEventListener("scroll", unlock, { passive: true });
+    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+    window.addEventListener("click", unlock, { once: true, passive: true });
+    window.addEventListener("touchstart", unlock, { once: true, passive: true });
+    window.addEventListener("keydown", unlock, { once: true, passive: true });
+    window.addEventListener("scroll", unlock, { once: true, passive: true });
   }
 
   // Lazy initialize AudioContext on user interaction
@@ -86,31 +99,28 @@ class QuantumSoundEngine {
 
       this.ctx = new AudioContextClass();
 
-      // Master Dynamics Compressor: Warm analog response, prevents clipping
+      // Master Dynamics Limiter (transparent, prevents digital clipping while preserving full volume)
       this.compressor = this.ctx.createDynamicsCompressor();
-      this.compressor.threshold.setValueAtTime(-15, this.ctx.currentTime);
-      this.compressor.knee.setValueAtTime(20, this.ctx.currentTime);
-      this.compressor.ratio.setValueAtTime(5, this.ctx.currentTime);
-      this.compressor.attack.setValueAtTime(0.005, this.ctx.currentTime);
-      this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+      this.compressor.threshold.setValueAtTime(-1.0, this.ctx.currentTime);
+      this.compressor.knee.setValueAtTime(6.0, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(12.0, this.ctx.currentTime);
+      this.compressor.attack.setValueAtTime(0.002, this.ctx.currentTime);
+      this.compressor.release.setValueAtTime(0.15, this.ctx.currentTime);
       this.compressor.connect(this.ctx.destination);
 
-      // Master Gain (rich volume)
+      // Master Gain (full, rich 1.0 volume)
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(
-        this._isMuted ? 0 : this._volume,
-        this.ctx.currentTime
-      );
+      this.masterGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
       this.masterGain.connect(this.compressor);
 
-      // SFX Sub-gain (punchy and responsive)
+      // SFX Sub-gain (1.0 for punchy tactile presence)
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
 
-      // Music Sub-gain (immersive, deep dark space level)
+      // Music Sub-gain
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(0.70, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
 
       // Visibility change listener to handle tab switching
@@ -270,15 +280,48 @@ class QuantumSoundEngine {
    * on 3D animations and quantum visualizations on the frontpage.
    */
   public playQuantumTopic(topic: string): void {
-    if (this._isMuted || !this.initContext() || !this.ctx || !this.sfxGain) return;
+    this._isMuted = false;
 
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {});
-    }
+    const wavMap: Record<string, string> = {
+      singularity: "singularity",
+      hero: "singularity",
+      ground_state: "ground_state",
+      sphere0: "ground_state",
+      "0": "ground_state",
+      excited_state: "excited_state",
+      sphere1: "excited_state",
+      "1": "excited_state",
+      entanglement: "entanglement",
+      bridge: "entanglement",
+      gate_h: "gate_h",
+      H: "gate_h",
+      gate_x: "gate_x",
+      X: "gate_x",
+      phase_flip: "phase_flip",
+      gate_z: "phase_flip",
+      Z: "phase_flip",
+      cnot: "cnot",
+      gate_cnot: "cnot",
+      qpu_chip: "qpu_chip",
+      chip: "qpu_chip",
+      wave_interference: "wave_interference",
+      wave: "wave_interference",
+      bloch_sphere: "bloch_sphere",
+      bloch: "bloch_sphere",
+    };
 
-    const t0 = this.ctx.currentTime;
+    const soundFile = wavMap[topic] || "singularity";
+    // 1. Play high quality studio 44.1kHz stereo audio immediately
+    this.playWav(soundFile, 1.0);
 
-    switch (topic) {
+    // 2. Layer procedural Web Audio synthesis
+    if (!this.initContext() || !this.ctx || !this.sfxGain) return;
+
+    const executeSynth = () => {
+      if (!this.ctx || !this.sfxGain) return;
+      const t0 = this.ctx.currentTime;
+
+      switch (topic) {
       case "singularity":
       case "hero": {
         // Hero Quantum Singularity / Core: Harmonic chime arpeggio + sub resonance
@@ -582,7 +625,14 @@ class QuantumSoundEngine {
         break;
       }
     }
+  };
+
+  if (this.ctx.state === "suspended") {
+    this.ctx.resume().then(() => executeSynth()).catch(() => {});
+  } else {
+    executeSynth();
   }
+}
 
   /**
    * Tactile audio feedback when placing or selecting a quantum gate

@@ -181,7 +181,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="SCROLL TO EXPLORE" />
+        <SlideFooter hintText="CLICK 3D CORE FOR QUANTUM AUDIO · SCROLL TO EXPLORE" mobileHintText="TAP 3D CORE FOR AUDIO" />
       </section>
 
       {/* ----------------- SECTION 2: SUPERPOSITION ----------------- */}
@@ -213,7 +213,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="HOVER 3D SPHERES TO INTERACT" mobileHintText="TAP SPHERES" />
+        <SlideFooter hintText="CLICK 3D QUBIT SPHERES FOR AUDIO" mobileHintText="TAP SPHERES FOR AUDIO" />
       </section>
 
       {/* ----------------- SECTION 3: ENTANGLEMENT ----------------- */}
@@ -245,7 +245,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="HOVER FILAMENT TO ACCELERATE" mobileHintText="CONNECTED QUBITS" />
+        <SlideFooter hintText="CLICK QUANTUM BRIDGE FOR AUDIO" mobileHintText="TAP BRIDGE FOR AUDIO" />
       </section>
 
       {/* ----------------- SECTION 4: CIRCUIT DESIGN ----------------- */}
@@ -287,7 +287,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="HOVER GATES & CHIP TO INSPECT" mobileHintText="SUPERCONDUCTING CHIP" />
+        <SlideFooter hintText="CLICK GATES & CHIP FOR AUDIO" mobileHintText="TAP GATES FOR AUDIO" />
       </section>
 
       {/* ----------------- SECTION 5: DATA / COMPUTATION ----------------- */}
@@ -319,7 +319,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
           </div>
         </div>
 
-        <SlideFooter hintText="MOVE CURSOR OVER MESH FOR RIPPLES" mobileHintText="INTERFERENCE MANIFOLD" />
+        <SlideFooter hintText="CLICK PROBABILITY WAVE FOR AUDIO" mobileHintText="TAP WAVE FOR AUDIO" />
       </section>
 
       {/* ----------------- SECTION 6: THE APPLICATION (INTERACTIVE) ----------------- */}
