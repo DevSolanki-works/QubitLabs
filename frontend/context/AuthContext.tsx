@@ -111,6 +111,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const supabase = createClient();
 
+    // Handle OAuth code landing on any client page (e.g. /?code=...)
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      if (code && !url.pathname.startsWith("/auth/callback")) {
+        supabase.auth
+          .exchangeCodeForSession(code)
+          .then(({ data, error }: { data: { session: Session | null }; error: unknown }) => {
+            if (!error && data?.session) {
+              handleUserSession(data.session);
+            }
+            url.searchParams.delete("code");
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+          })
+          .catch(() => {
+            url.searchParams.delete("code");
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+          });
+      }
+    }
+
     // Check active session on mount
     supabase.auth
       .getSession()
@@ -279,7 +300,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const supabase = createClient();
     try {
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      const origin =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://qubitlabs-kappa.vercel.app";
+      const redirectTo = `${origin}/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
