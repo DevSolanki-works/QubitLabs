@@ -34,6 +34,7 @@ import { getResourcesForLesson, getRecommendedResourceForLesson } from "@/lib/re
 import QuizCard from "@/components/QuizCard";
 import ResourceCard from "@/components/ResourceCard";
 import { UserMenu } from "@/components/UserMenu";
+import { AlexiaAITutor } from "@/components/character/AlexiaAITutor";
 
 export default function LessonPage() {
   const params = useParams();
@@ -49,6 +50,7 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("overview");
+  const [showAlexia, setShowAlexia] = useState(false);
 
   const checkStatus = () => {
     if (lesson) {
@@ -633,6 +635,30 @@ export default function LessonPage() {
             </Link>
           )}
         </nav>
+      </div>
+
+      {/* Floating Alexia AI Tutor Drawer / Widget */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {showAlexia ? (
+          <div className="w-[330px] sm:w-[370px] rounded-3xl border border-cyan-400/40 bg-[#070e1a]/95 p-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.85)] backdrop-blur-xl">
+            <AlexiaAITutor
+              currentLessonTitle={lesson.title}
+              currentLessonId={lesson.id}
+              isDocked={false}
+              onDockToggle={() => setShowAlexia(false)}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAlexia(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-cyan-400/40 bg-[#070d18]/90 text-xs font-semibold text-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:scale-105 hover:bg-cyan-950/60 transition cursor-pointer backdrop-blur-md"
+            title="Ask Alexia AI Tutor about this lesson"
+          >
+            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+            <span>Ask Alexia Tutor</span>
+            <Sparkles size={14} className="text-cyan-400" />
+          </button>
+        )}
       </div>
     </main>
   );

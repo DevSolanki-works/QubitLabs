@@ -5,10 +5,8 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Atom,
   CheckCircle2,
   Clock3,
-  Flame,
   GraduationCap,
   Play,
   RotateCcw,
@@ -16,9 +14,7 @@ import {
   Trophy,
   GitBranch,
   LayoutGrid,
-  Layers,
-  Hash,
-  BookOpen,
+  Bot,
 } from "lucide-react";
 
 import { UserMenu } from "@/components/UserMenu";
@@ -30,20 +26,13 @@ import {
 } from "@/lib/progress";
 import { getGamificationState, getCurrentRank } from "@/lib/gamification";
 import LearningPathTree from "@/components/LearningPathTree";
-
-const TRACKS = [
-  { id: "All", label: "All Modules" },
-  { id: "Foundations", label: "1. Foundations" },
-  { id: "Gates", label: "2. Gates & Systems" },
-  { id: "Algorithms", label: "3. Algorithms" },
-  { id: "NISQ", label: "4. Frontier & NISQ" },
-];
+import { AlexiaAITutor } from "@/components/character/AlexiaAITutor";
 
 export default function LearnPage() {
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [gamificationState, setGamificationState] = useState(getGamificationState());
-  const [viewMode, setViewMode] = useState<"tree" | "grid">("tree");
-  const [selectedTrack, setSelectedTrack] = useState<string>("All");
+  const [viewMode, setViewMode] = useState<"cards" | "tree">("cards");
+  const [isDocked, setIsDocked] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   const loadData = () => {
@@ -77,256 +66,294 @@ export default function LearnPage() {
     }
   };
 
-  const filteredLessons =
-    selectedTrack === "All"
-      ? lessons
-      : lessons.filter((l) => l.level.toLowerCase().includes(selectedTrack.toLowerCase()));
-
   return (
     <main className="min-h-screen bg-[#050b10] text-white selection:bg-cyan-400 selection:text-[#050b10]">
-      {/* Top Navigation */}
+      {/* Top Header Navigation matching reference image */}
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-white/10 bg-[#070c13]/90 px-6 backdrop-blur-md lg:px-12">
         <div className="flex items-center gap-4">
           <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg p-2 text-white/40 transition hover:bg-white/5 hover:text-white"
-            title="Return to Landing"
+            href="/lab"
+            className="flex items-center gap-2 rounded-lg p-2 text-white/50 transition hover:bg-white/5 hover:text-white text-xs font-medium"
+            title="Go to Quantum Lab"
           >
-            <ArrowLeft size={18} />
-            <span className="hidden text-xs font-medium sm:inline">Home</span>
+            <ArrowLeft size={16} />
+            <span>Quantum Lab</span>
           </Link>
 
           <div className="h-5 w-px bg-white/10" />
 
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <GraduationCap size={18} className="text-cyan-400" />
             <span>Learning Curriculum</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Live Rank & XP Pill */}
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs transition hover:border-cyan-400/40"
-            title="View full rank & achievements on Dashboard"
-          >
-            <Sparkles size={13} className="text-cyan-300" />
-            <span className="font-semibold text-white">{rankInfo.rank.name}</span>
-            <span className="font-mono text-[11px] text-cyan-300">
-              {gamificationState.xp} XP
-            </span>
-          </Link>
-
-          {/* Streak Badge */}
-          {gamificationState.streak.currentStreak > 0 && (
-            <div
-              className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-mono text-xs font-bold text-amber-300"
-              title={`${gamificationState.streak.currentStreak} day learning streak`}
-            >
-              <Flame size={14} className="fill-amber-400 text-amber-400" />
-              <span>{gamificationState.streak.currentStreak}d</span>
-            </div>
-          )}
-
+          {/* Assessment Mode Button */}
           <Link
             href="/challenges"
-            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-400/20 hover:text-white"
+            className="flex items-center gap-1.5 rounded-xl border border-violet-400/30 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-400/20 hover:text-white"
           >
             <Trophy size={14} />
-            <span>Challenges Hub</span>
+            <span>Assessment Mode</span>
           </Link>
 
-          <UserMenu />
-
-          {mounted && progressStats.completed > 0 && (
+          {/* Reset Progress Button */}
+          {mounted && (
             <button
               onClick={handleReset}
               className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white cursor-pointer"
               title="Reset progress to start over"
             >
               <RotateCcw size={12} />
-              <span className="hidden sm:inline">Reset</span>
+              <span className="hidden sm:inline">Reset Progress</span>
             </button>
           )}
+
+          <UserMenu />
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14 space-y-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 lg:py-12 space-y-8">
         {/* Hero Section */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
-              <Sparkles size={14} />
-              <span>Comprehensive 4-Level Curriculum</span>
-            </div>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
-              Quantum Computing Learning Path
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-400 leading-relaxed">
-              Step through physical principles, explore 3D statevectors in Quantum Lab, test conceptual understanding with deterministic quizzes, and master quantum algorithms.
-            </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+            <Sparkles size={14} />
+            <span>INTERACTIVE QUANTUM PATH</span>
           </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1.5 self-start rounded-xl border border-white/10 bg-[#070c14] p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode("tree")}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                viewMode === "tree"
-                  ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <GitBranch size={13} />
-              <span>Progression Tree</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <LayoutGrid size={13} />
-              <span>All Lessons</span>
-            </button>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Learn quantum computing by doing.
+          </h1>
+          <p className="max-w-3xl text-sm text-slate-400 leading-relaxed">
+            Don&apos;t just read equations. Construct real circuits, execute real Qiskit simulations, inspect statevectors and Bloch spheres, and receive AI tutoring from Quantum Copilot.
+          </p>
         </div>
 
-        {/* Global Progress Overview Banner */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-cyan-950/20 via-[#070c14] to-[#070c14] p-6 shadow-lg">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white">Curriculum Coherence</span>
-                <span className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
-                  {progressStats.percentage}% Complete
-                </span>
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Alexia AI Tutor (Docked) */}
+          {isDocked && (
+            <div className="lg:col-span-4 xl:col-span-4 sticky top-24">
+              <div className="rounded-3xl border border-cyan-500/20 bg-gradient-to-b from-[#070e1a]/90 via-[#070c14]/90 to-[#050910]/95 p-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+                <AlexiaAITutor
+                  currentLessonTitle={activeLesson?.title || "Quantum Foundations"}
+                  currentLessonId={activeLesson?.id}
+                  isDocked={isDocked}
+                  onDockToggle={() => setIsDocked(false)}
+                />
               </div>
-              <p className="mt-1 text-xs text-slate-400">
-                {progressStats.completed} of {progressStats.total} modules mastered across 4 levels.
-              </p>
-            </div>
-
-            {activeLesson && (
-              <Link
-                href={`/learn/${activeLesson.id}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-4 py-2.5 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
-              >
-                <span>Continue: {activeLesson.title}</span>
-                <ArrowRight size={13} />
-              </Link>
-            )}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/5">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 transition-all duration-700"
-              style={{ width: `${Math.max(progressStats.percentage, 4)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Track Filter Pills (Shown in Grid View) */}
-        {viewMode === "grid" && (
-          <div className="flex flex-wrap items-center gap-2">
-            {TRACKS.map((track) => (
-              <button
-                key={track.id}
-                onClick={() => setSelectedTrack(track.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                  selectedTrack === track.id
-                    ? "bg-cyan-400 text-[#070c14] shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                    : "bg-white/[0.03] border border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-                }`}
-              >
-                {track.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Learning Path Presentation */}
-        <div>
-          {viewMode === "tree" ? (
-            <LearningPathTree
-              completedLessons={completedLessons}
-              activeLessonId={activeLesson?.id}
-            />
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredLessons.map((lesson) => {
-                const isCompleted = completedLessons.includes(lesson.id);
-                const isCurrent = activeLesson?.id === lesson.id;
-
-                return (
-                  <Link
-                    key={lesson.id}
-                    href={`/learn/${lesson.id}`}
-                    className={`group relative flex flex-col justify-between rounded-3xl border p-6 transition ${
-                      isCompleted
-                        ? "border-emerald-500/30 bg-gradient-to-br from-emerald-950/15 via-[#070c14] to-[#070c14]"
-                        : isCurrent
-                        ? "border-cyan-400/60 bg-gradient-to-br from-cyan-950/20 via-[#070c14] to-[#070c14] shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                        : "border-white/10 bg-[#070c14] hover:border-cyan-400/30 hover:bg-[#090f18]"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-semibold text-slate-400">
-                          #{String(lesson.number).padStart(2, "0")} · {lesson.level.split(":")[0]}
-                        </span>
-                        {isCompleted && <CheckCircle2 size={16} className="text-emerald-400" />}
-                        {isCurrent && (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-300 animate-pulse">
-                            <Play size={10} className="fill-cyan-300" />
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="mt-3 text-lg font-bold text-white group-hover:text-cyan-200 transition">
-                        {lesson.title}
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                        {lesson.subtitle}
-                      </p>
-
-                      {/* Topic Tags */}
-                      {lesson.tags && (
-                        <div className="mt-4 flex flex-wrap gap-1.5">
-                          {lesson.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag}
-                              className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/5 text-slate-400"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Clock3 size={13} />
-                        {lesson.duration}
-                      </span>
-                      <span className="font-mono font-semibold text-cyan-300">
-                        +{lesson.xpReward} XP
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
             </div>
           )}
+
+          {/* Right Column: Curriculum Progress & Lessons */}
+          <div className={`${isDocked ? "lg:col-span-8 xl:col-span-8" : "lg:col-span-12"} space-y-6`}>
+            {/* Curriculum Progress Overview Card */}
+            <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-[#071322]/80 via-[#070d17]/90 to-[#070c14]/90 p-6 shadow-[0_4px_25px_rgba(0,240,255,0.06)]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <span className="text-[10px] font-mono font-bold tracking-[0.15em] text-cyan-400 uppercase">
+                    YOUR CURRICULUM PROGRESS
+                  </span>
+                  <h2 className="mt-1 text-2xl font-extrabold text-white">
+                    {progressStats.completed} of {progressStats.total} Lessons Completed
+                  </h2>
+                </div>
+
+                <div className="text-left sm:text-right">
+                  <span className="text-2xl font-black font-mono text-cyan-300">
+                    {progressStats.percentage}%
+                  </span>
+                  <p className="text-[11px] text-slate-400 uppercase font-mono tracking-wider">
+                    Completion rate
+                  </p>
+                </div>
+              </div>
+
+              {/* Glowing Progress Bar */}
+              <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 shadow-[0_0_12px_rgba(0,240,255,0.5)] transition-all duration-700"
+                  style={{ width: `${Math.max(progressStats.percentage, 4)}%` }}
+                />
+              </div>
+
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400 border-t border-white/5 pt-3">
+                <span>Follow the sequential lessons or explore any topic at your own pace.</span>
+                <Link
+                  href="/challenges"
+                  className="inline-flex items-center gap-1.5 font-semibold text-cyan-400 hover:text-cyan-300 transition"
+                >
+                  <span>View Challenge Assessment Hub</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </div>
+
+            {/* View Mode Controls & Re-dock button if undocked */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {!isDocked && (
+                  <button
+                    onClick={() => setIsDocked(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-400/40 bg-cyan-950/40 text-xs font-mono text-cyan-300 hover:bg-cyan-500/20 transition cursor-pointer shadow-[0_0_12px_rgba(0,240,255,0.2)]"
+                  >
+                    <Bot size={13} />
+                    <span>● Dock Alexia</span>
+                  </button>
+                )}
+              </div>
+
+              {/* View Switcher: Cards vs Progression Tree */}
+              <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070c14] p-1">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("cards")}
+                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    viewMode === "cards"
+                      ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid size={13} />
+                  <span>Curriculum Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("tree")}
+                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    viewMode === "tree"
+                      ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <GitBranch size={13} />
+                  <span>Progression Tree</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Lesson Presentation */}
+            {viewMode === "tree" ? (
+              <LearningPathTree
+                completedLessons={completedLessons}
+                activeLessonId={activeLesson?.id}
+              />
+            ) : (
+              <div className="space-y-4">
+                {lessons.map((lesson) => {
+                  const isCompleted = completedLessons.includes(lesson.id);
+                  const isCurrent = activeLesson?.id === lesson.id;
+
+                  return (
+                    <div
+                      key={lesson.id}
+                      className={`rounded-2xl border transition-all p-5 sm:p-6 shadow-md relative group ${
+                        isCompleted
+                          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-950/15 via-[#070d17] to-[#070c14]"
+                          : isCurrent
+                          ? "border-cyan-400/50 bg-gradient-to-br from-cyan-950/25 via-[#070d17] to-[#070c14] shadow-[0_0_20px_rgba(0,240,255,0.08)]"
+                          : "border-cyan-900/20 bg-[#070d18]/80 hover:border-cyan-400/40 hover:bg-[#091120]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          {/* Left Status Indicator Circle */}
+                          <div
+                            className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
+                              isCompleted
+                                ? "border-emerald-400/50 bg-emerald-400/15 text-emerald-300"
+                                : isCurrent
+                                ? "border-cyan-400/60 bg-cyan-400/20 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.4)] animate-pulse"
+                                : "border-white/10 bg-white/5 text-slate-400"
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle2 size={18} className="text-emerald-400" />
+                            ) : isCurrent ? (
+                              <Play size={13} className="fill-cyan-300 text-cyan-300" />
+                            ) : (
+                              <span className="font-mono text-xs text-slate-400">
+                                {lesson.number}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-lg font-bold text-white group-hover:text-cyan-200 transition">
+                                {lesson.title}
+                              </h3>
+
+                              {isCompleted && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+                                  Completed
+                                </span>
+                              )}
+
+                              {isCurrent && !isCompleted && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-400/15 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-300 animate-pulse">
+                                  Next Up
+                                </span>
+                              )}
+
+                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[10px] text-slate-400">
+                                {lesson.difficulty}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-semibold text-cyan-400/95">
+                              {lesson.subtitle}
+                            </p>
+
+                            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                              {lesson.description}
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/5">
+                              <span className="flex items-center gap-1 font-mono text-[11px]">
+                                <Clock3 size={13} className="text-slate-500" />
+                                {lesson.duration}
+                              </span>
+                              {lesson.task && (
+                                <span className="text-[11px] text-slate-400 line-clamp-1">
+                                  <span className="text-slate-500 font-semibold">Task: </span>
+                                  {lesson.task}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Circular Arrow Button */}
+                        <Link
+                          href={`/learn/${lesson.id}`}
+                          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-400/30 bg-cyan-950/30 text-cyan-300 group-hover:bg-cyan-400 group-hover:text-[#070c14] group-hover:border-cyan-300 transition-all shadow-[0_0_12px_rgba(0,240,255,0.15)]"
+                          title={`Start ${lesson.title}`}
+                        >
+                          <ArrowRight size={16} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Floating Undocked Alexia Widget (When Undocked) */}
+      {!isDocked && (
+        <div className="fixed bottom-6 left-6 z-50 w-80 rounded-3xl border border-cyan-400/40 bg-[#070e1a]/95 p-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+          <AlexiaAITutor
+            currentLessonTitle={activeLesson?.title || "Quantum Foundations"}
+            currentLessonId={activeLesson?.id}
+            isDocked={false}
+            onDockToggle={() => setIsDocked(true)}
+          />
+        </div>
+      )}
     </main>
   );
 }

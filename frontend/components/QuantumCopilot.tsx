@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { recordCopilotInquiry } from "@/lib/gamification";
+import { AlexiaAITutor } from "@/components/character/AlexiaAITutor";
 
 type CopilotMode = "explain" | "debug" | "improve";
 
@@ -152,6 +153,7 @@ export default function QuantumCopilot({
   const [messages, setMessages] = useState<CopilotMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAlexiaTutor, setShowAlexiaTutor] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const lastFailedQuestion = useRef<string | null>(null);
 
@@ -289,12 +291,39 @@ export default function QuantumCopilot({
             </p>
           </div>
 
-          <div className="ml-auto hidden items-center gap-1.5 text-[9px] text-white/30 sm:flex">
-            <MessageCircle size={11} />
-            Circuit & Qiskit-aware
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAlexiaTutor(!showAlexiaTutor)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition cursor-pointer ${
+                showAlexiaTutor
+                  ? "border-cyan-400/60 bg-cyan-400/15 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.25)]"
+                  : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-cyan-300 hover:border-cyan-400/30"
+              }`}
+              title="Toggle Alexia 2.5D AI Tutor"
+            >
+              <Sparkles size={12} className="text-cyan-400" />
+              <span>{showAlexiaTutor ? "Alexia Mode" : "Alexia 2.5D"}</span>
+            </button>
+
+            <div className="hidden items-center gap-1.5 text-[9px] text-white/30 sm:flex">
+              <MessageCircle size={11} />
+              Circuit & Qiskit-aware
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Alexia 2.5D Character View */}
+      {showAlexiaTutor && (
+        <div className="border-b border-white/[0.08] p-4 bg-gradient-to-b from-[#070e1a]/80 to-[#070c14]/90">
+          <AlexiaAITutor
+            currentLessonTitle={challengeContext?.title || "Quantum Circuit Lab"}
+            circuitContext={circuit}
+            isDocked={true}
+          />
+        </div>
+      )}
 
       {/* Modes */}
       <div className="grid grid-cols-3 gap-1.5 border-b border-white/[0.06] p-2.5">
