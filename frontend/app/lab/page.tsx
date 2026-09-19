@@ -9,6 +9,7 @@ import {
   Atom,
   ChevronDown,
   Code2,
+  Compass,
   GraduationCap,
   Sparkles,
   Wand2,
@@ -287,6 +288,14 @@ function LabPage() {
           >
             <Sparkles size={13} className="text-violet-300" />
             <span>Challenges</span>
+          </Link>
+
+          <Link
+            href="/dashboard"
+            className="hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.025] px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white sm:flex"
+          >
+            <Compass size={14} className="text-slate-400" />
+            <span>Dashboard</span>
           </Link>
 
           <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.025] px-3 py-1.5 text-xs">

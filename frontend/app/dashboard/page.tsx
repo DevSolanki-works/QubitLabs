@@ -60,16 +60,6 @@ function DashboardPage() {
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
 
-  // Forward backwards-compatible query params to /lab
-  useEffect(() => {
-    const lessonParam = searchParams.get("lesson");
-    const challengeParam = searchParams.get("challenge");
-    if (lessonParam || challengeParam) {
-      const query = new URLSearchParams(searchParams.toString()).toString();
-      router.replace(`/lab?${query}`);
-    }
-  }, [searchParams, router]);
-
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [gamificationState, setGamificationState] = useState(getGamificationState());
   const [mounted, setMounted] = useState(false);

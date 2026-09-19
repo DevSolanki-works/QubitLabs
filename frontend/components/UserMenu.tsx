@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getGamificationState, getCurrentRank } from "@/lib/gamification";
 import {
+  Atom,
   Compass,
+  FlaskConical,
   GraduationCap,
   LogOut,
   Sparkles,
@@ -120,6 +122,15 @@ export function UserMenu() {
           {/* Navigation Items */}
           <div className="space-y-0.5 text-xs">
             <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
+            >
+              <Atom size={14} className="text-cyan-400" />
+              <span>Landing Page</span>
+            </Link>
+
+            <Link
               href="/dashboard"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
@@ -135,6 +146,15 @@ export function UserMenu() {
             >
               <GraduationCap size={14} className="text-teal-400" />
               <span>Curriculum</span>
+            </Link>
+
+            <Link
+              href="/lab"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
+            >
+              <FlaskConical size={14} className="text-cyan-300" />
+              <span>Quantum Lab</span>
             </Link>
 
             <Link

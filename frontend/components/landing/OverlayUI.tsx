@@ -116,7 +116,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
             <Link
-              href={user ? "/dashboard" : "/auth/signup?next=/learn"}
+              href="/learn"
               className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-300 text-[#07080c] font-bold text-xs sm:text-sm hover:opacity-95 transition-all hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] pointer-events-auto cursor-pointer flex items-center gap-2"
             >
               <span>Start Learning</span>

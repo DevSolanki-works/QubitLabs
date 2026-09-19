@@ -82,6 +82,22 @@ export default function ChallengesPage() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/learn"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <GraduationCap size={14} className="text-cyan-400" />
+            <span>Curriculum</span>
+          </Link>
+
+          <Link
+            href="/dashboard"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <Compass size={14} className="text-slate-400" />
+            <span>Dashboard</span>
+          </Link>
+
+          <Link
             href="/lab"
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
           >

@@ -52,15 +52,18 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
 
-  // If user is already logged in, redirect away from auth pages (/auth/login, /auth/signup) to /dashboard
+  // If user is already logged in, redirect away from auth pages (/auth/login, /auth/signup) to next destination or /dashboard
   if (
     user &&
     (pathname === "/auth/login" ||
       pathname === "/auth/signup" ||
       pathname === "/auth/forgot-password")
   ) {
+    const nextParam = request.nextUrl.searchParams.get("next");
+    const targetPath = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = targetPath;
+    url.searchParams.delete("next");
     return NextResponse.redirect(url);
   }
 
