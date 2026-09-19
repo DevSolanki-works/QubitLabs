@@ -291,7 +291,9 @@ export function AlexiaAITutor({
             />
 
             {/* Glowing Sci-Fi Pedestal Platform beneath feet */}
-            <PedestalPlatform isSpeaking={isSpeaking} />
+            <div className="w-full -mt-16 mb-2 pointer-events-none">
+              <PedestalPlatform isSpeaking={isSpeaking} />
+            </div>
           </div>
 
           {/* Interactive Chat Input Bar matching screenshot */}

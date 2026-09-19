@@ -29,21 +29,29 @@ export function Live2DAlexia({
 
   const updateModelTransform = useCallback((model: any, width: number, height: number) => {
     if (!model) return;
-    const bounds = model.getBounds();
-    const currentScale = model.scale?.y || 1;
-    // Calculate unscaled height
-    const rawHeight = bounds.height > 0 ? bounds.height / currentScale : (model.height > 0 ? model.height : 2200);
-    // Scale so full-body fits nicely with margin for cat ears and boots
-    const targetHeight = height * 0.90;
-    const scale = Math.max(0.1, targetHeight / rawHeight);
+
+    // Get unscaled model dimensions from internalModel
+    const rawHeight =
+      model.internalModel?.originalHeight ||
+      model.internalModel?.height ||
+      (model.height > 0 && model.scale?.y ? model.height / model.scale.y : 4000);
+
+    // Target full-body height: fits head, cat ears, torso, legs, and boots
+    // comfortably inside the canvas with breathing room above and below.
+    const targetHeight = Math.min(height * 0.72, 300);
+    // Live2D Alexia character drawing occupies roughly 85% of the total canvas bounds
+    const scale = targetHeight / (rawHeight * 0.85);
 
     model.scale.set(scale);
+
     if (model.anchor && typeof model.anchor.set === "function") {
-      model.anchor.set(0.5, 0.96);
-      model.position.set(width / 2, height * 0.96);
+      // Anchor near the boots (94% down the model)
+      model.anchor.set(0.5, 0.94);
+      // Position the feet right above the dais at 84% of canvas height
+      model.position.set(width / 2, height * 0.84);
     } else {
-      model.x = (width - model.width * scale) / 2;
-      model.y = height * 0.96 - model.height * scale;
+      model.x = width / 2;
+      model.y = height * 0.84;
     }
   }, []);
 
@@ -64,8 +72,8 @@ export function Live2DAlexia({
         }
 
         const container = containerRef.current;
-        const width = container.clientWidth || 340;
-        const height = container.clientHeight || 500;
+        const width = container.clientWidth || 320;
+        const height = container.clientHeight || 410;
 
         // Create PIXI Application with transparent background
         const app = new PIXI.Application({
@@ -134,8 +142,8 @@ export function Live2DAlexia({
         // Resize handler
         const handleResize = () => {
           if (!appRef.current || !containerRef.current || !modelRef.current) return;
-          const newWidth = containerRef.current.clientWidth || 340;
-          const newHeight = containerRef.current.clientHeight || 500;
+          const newWidth = containerRef.current.clientWidth || 320;
+          const newHeight = containerRef.current.clientHeight || 410;
           try {
             appRef.current.renderer.resize(newWidth, newHeight);
             updateModelTransform(modelRef.current, newWidth, newHeight);
@@ -254,7 +262,7 @@ export function Live2DAlexia({
     <div
       ref={containerRef}
       onClick={onClick}
-      className="relative w-full h-[460px] sm:h-[520px] flex items-center justify-center cursor-pointer select-none"
+      className="relative w-full h-[390px] sm:h-[420px] flex items-center justify-center cursor-pointer select-none overflow-visible"
     >
       {/* Fallback & Loading spinner */}
       {!loaded && !loadError && (
