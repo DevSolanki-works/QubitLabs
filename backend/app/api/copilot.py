@@ -7,6 +7,7 @@ from app.quantum.models.copilot import (
 
 from app.services.copilot import (
     explain_quantum_experiment,
+    generate_local_quantum_explanation,
 )
 
 
@@ -15,13 +16,17 @@ router = APIRouter(
     tags=["copilot"],
 )
 
+quantum_router = APIRouter(
+    prefix="/api/quantum",
+    tags=["quantum"],
+)
+
 
 @router.post(
     "/explain",
     response_model=CopilotResponse,
 )
 def explain(request: CopilotRequest):
-
     try:
         answer = explain_quantum_experiment(
             circuit=request.circuit,
@@ -37,14 +42,57 @@ def explain(request: CopilotRequest):
             mode=request.mode,
         )
 
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=str(exc),
-        ) from exc
+    except Exception:
+        fallback = generate_local_quantum_explanation(
+            circuit=request.circuit or {},
+            result=request.result or {},
+            question=request.question or "",
+            mode=request.mode or "explain",
+        )
+        return CopilotResponse(
+            answer=fallback,
+            mode=request.mode or "explain",
+        )
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Copilot error: {exc}",
-        ) from exc
+
+@quantum_router.post("/copilot")
+def quantum_copilot(payload: dict):
+    question = payload.get("question") or payload.get("prompt") or "Explain this circuit"
+    mode = payload.get("mode") or "explain"
+    circuit = payload.get("circuit") or {}
+    result = payload.get("result") or {}
+    history = payload.get("history") or []
+    challenge = payload.get("challenge_context")
+    if isinstance(challenge, dict):
+        challenge_str = challenge.get("title")
+    else:
+        challenge_str = challenge
+
+    try:
+        answer = explain_quantum_experiment(
+            circuit=circuit,
+            result=result,
+            question=question,
+            mode=mode,
+            history=history,
+            challenge_context=challenge_str,
+        )
+        return {
+            "answer": answer,
+            "response": answer,
+            "message": answer,
+            "mode": mode,
+        }
+    except Exception:
+        fallback = generate_local_quantum_explanation(
+            circuit=circuit,
+            result=result,
+            question=question,
+            mode=mode,
+        )
+        return {
+            "answer": fallback,
+            "response": fallback,
+            "message": fallback,
+            "mode": mode,
+        }

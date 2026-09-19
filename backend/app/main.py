@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.simulation import router as simulation_router
-from app.api.copilot import router as copilot_router
+from app.api.copilot import router as copilot_router, quantum_router
 
 
 app = FastAPI(
@@ -18,6 +18,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://qubitlabs-kappa.vercel.app",
+        "https://qubitlabs-ai.vercel.app",
         "https://qubitlabs.vercel.app",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
@@ -29,6 +30,7 @@ app.add_middleware(
 
 app.include_router(simulation_router)
 app.include_router(copilot_router)
+app.include_router(quantum_router)
 
 @app.get("/")
 def root():

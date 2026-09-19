@@ -21,7 +21,7 @@ import CircuitToolbar from "@/components/CircuitToolbar";
 import BlochCard from "@/components/BlochCard";
 import ProbabilityChart from "@/components/ProbabilityChart";
 import MeasurementChart from "@/components/MeasurementChart";
-import QuantumCopilot from "@/components/QuantumCopilot";
+import { AlexiaAITutor } from "@/components/character/AlexiaAITutor";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import ChallengeCompletionCard from "@/components/ChallengeCompletionCard";
 import { UserMenu } from "@/components/UserMenu";
@@ -117,7 +117,8 @@ function LabPage() {
   const [challengeValidation, setChallengeValidation] =
     useState<ValidationResult | null>(null);
 
-  // Copilot trigger
+  // Alexia AI Tutor state & Copilot trigger
+  const [showAlexia, setShowAlexia] = useState(true);
   const [copilotExternalPrompt, setCopilotExternalPrompt] = useState<
     string | null
   >(null);
@@ -225,6 +226,7 @@ function LabPage() {
   // Handle Copilot question triggered from completion card
   // --------------------------------------------------
   const handleAskCopilotWhy = () => {
+    setShowAlexia(true);
     if (challenge) {
       setCopilotExternalPrompt(challenge.copilotStarter);
     }
@@ -304,6 +306,22 @@ function LabPage() {
             <span className="font-mono text-cyan-300">Qiskit Aer</span>
             <ChevronDown size={12} className="text-white/20" />
           </div>
+
+          {/* Alexia AI Tutor Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAlexia((prev) => !prev)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              showAlexia
+                ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-200 shadow-[0_0_12px_rgba(0,240,255,0.2)]"
+                : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+            title="Toggle Alexia AI Tutor window"
+          >
+            <Sparkles size={13} className="text-cyan-400" />
+            <span>Alexia Tutor</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          </button>
 
           <UserMenu />
         </div>
@@ -486,25 +504,33 @@ function LabPage() {
               </pre>
             </div>
 
-            {/* Quantum Copilot */}
-            <div className="mt-6">
-              <QuantumCopilot
-                circuit={{
-                  num_qubits: circuit.numQubits,
-                  gates: serializeCircuit(circuit),
-                }}
-                result={result}
-                challengeContext={
-                  challenge
-                    ? {
-                        title: challenge.title,
-                        lessonId: challenge.lessonId,
-                      }
-                    : null
-                }
-                externalPrompt={copilotExternalPrompt}
-                onClearExternalPrompt={() => setCopilotExternalPrompt(null)}
-              />
+            {/* Alexia AI Tutor Status / Focus Bar */}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-gradient-to-r from-cyan-950/25 via-[#0b101c] to-cyan-950/15 p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.15)]">
+                  <Sparkles size={17} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                    <span>Alexia 2.5D AI Quantum Tutor</span>
+                    <span className="rounded-full bg-cyan-400/20 px-2 py-0.5 text-[9px] font-mono text-cyan-300">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/40">
+                    Movable & resizable quantum tutor window. Drag header to reposition anywhere.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAlexia(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20 cursor-pointer shadow-[0_0_10px_rgba(0,240,255,0.1)]"
+              >
+                <Sparkles size={13} className="text-cyan-400" />
+                <span>{showAlexia ? "Focus Alexia" : "Summon Alexia"}</span>
+              </button>
             </div>
           </div>
         </section>
@@ -514,6 +540,26 @@ function LabPage() {
           <ResultsPanel result={result} running={running} />
         </aside>
       </div>
+
+      {/* Movable & Resizable Alexia AI Tutor Floating Assistant */}
+      {showAlexia && (
+        <AlexiaAITutor
+          currentLessonTitle={
+            challenge?.title || (lesson ? lesson.title : "Quantum Circuit Lab")
+          }
+          currentLessonId={challenge?.lessonId || lesson?.id}
+          circuitContext={{
+            num_qubits: circuit.numQubits,
+            gates: serializeCircuit(circuit),
+          }}
+          simulationResult={result}
+          externalPrompt={copilotExternalPrompt}
+          onClearExternalPrompt={() => setCopilotExternalPrompt(null)}
+          isDocked={false}
+          isOpen={showAlexia}
+          onClose={() => setShowAlexia(false)}
+        />
+      )}
     </main>
   );
 }
