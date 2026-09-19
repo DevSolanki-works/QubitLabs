@@ -30,6 +30,7 @@ type AuthContextType = {
   loading: boolean;
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
   signUp: (
     email: string,
     password: string,
@@ -272,6 +273,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    if (!configured) {
+      return { error: "Supabase authentication is not configured in this environment." };
+    }
+    const supabase = createClient();
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+      if (error) return { error: error.message };
+      return {};
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error
+            ? err.message
+            : "An unexpected error occurred while initiating Google sign-in.",
+      };
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user);
@@ -287,6 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isConfigured: configured,
         signIn,
+        signInWithGoogle,
         signUp,
         signOut,
         resetPassword,

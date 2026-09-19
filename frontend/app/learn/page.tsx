@@ -16,6 +16,9 @@ import {
   Trophy,
   GitBranch,
   LayoutGrid,
+  Layers,
+  Hash,
+  BookOpen,
 } from "lucide-react";
 
 import { UserMenu } from "@/components/UserMenu";
@@ -28,10 +31,19 @@ import {
 import { getGamificationState, getCurrentRank } from "@/lib/gamification";
 import LearningPathTree from "@/components/LearningPathTree";
 
+const TRACKS = [
+  { id: "All", label: "All Modules" },
+  { id: "Foundations", label: "1. Foundations" },
+  { id: "Gates", label: "2. Gates & Systems" },
+  { id: "Algorithms", label: "3. Algorithms" },
+  { id: "NISQ", label: "4. Frontier & NISQ" },
+];
+
 export default function LearnPage() {
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [gamificationState, setGamificationState] = useState(getGamificationState());
   const [viewMode, setViewMode] = useState<"tree" | "grid">("tree");
+  const [selectedTrack, setSelectedTrack] = useState<string>("All");
   const [mounted, setMounted] = useState(false);
 
   const loadData = () => {
@@ -64,6 +76,11 @@ export default function LearnPage() {
       loadData();
     }
   };
+
+  const filteredLessons =
+    selectedTrack === "All"
+      ? lessons
+      : lessons.filter((l) => l.level.toLowerCase().includes(selectedTrack.toLowerCase()));
 
   return (
     <main className="min-h-screen bg-[#050b10] text-white selection:bg-cyan-400 selection:text-[#050b10]">
@@ -125,7 +142,7 @@ export default function LearnPage() {
           {mounted && progressStats.completed > 0 && (
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white"
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white cursor-pointer"
               title="Reset progress to start over"
             >
               <RotateCcw size={12} />
@@ -135,7 +152,7 @@ export default function LearnPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14">
+      <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14 space-y-10">
         {/* Hero Section */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -156,7 +173,7 @@ export default function LearnPage() {
             <button
               type="button"
               onClick={() => setViewMode("tree")}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                 viewMode === "tree"
                   ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
                   : "text-slate-400 hover:text-white"
@@ -168,7 +185,7 @@ export default function LearnPage() {
             <button
               type="button"
               onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                 viewMode === "grid"
                   ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
                   : "text-slate-400 hover:text-white"
@@ -181,7 +198,7 @@ export default function LearnPage() {
         </div>
 
         {/* Global Progress Overview Banner */}
-        <div className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-r from-cyan-950/20 via-[#070c14] to-[#070c14] p-6 shadow-lg">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-cyan-950/20 via-[#070c14] to-[#070c14] p-6 shadow-lg">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -215,8 +232,27 @@ export default function LearnPage() {
           </div>
         </div>
 
+        {/* Track Filter Pills (Shown in Grid View) */}
+        {viewMode === "grid" && (
+          <div className="flex flex-wrap items-center gap-2">
+            {TRACKS.map((track) => (
+              <button
+                key={track.id}
+                onClick={() => setSelectedTrack(track.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  selectedTrack === track.id
+                    ? "bg-cyan-400 text-[#070c14] shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                    : "bg-white/[0.03] border border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                }`}
+              >
+                {track.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Learning Path Presentation */}
-        <div className="mt-12">
+        <div>
           {viewMode === "tree" ? (
             <LearningPathTree
               completedLessons={completedLessons}
@@ -224,7 +260,7 @@ export default function LearnPage() {
             />
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {lessons.map((lesson) => {
+              {filteredLessons.map((lesson) => {
                 const isCompleted = completedLessons.includes(lesson.id);
                 const isCurrent = activeLesson?.id === lesson.id;
 
@@ -232,12 +268,12 @@ export default function LearnPage() {
                   <Link
                     key={lesson.id}
                     href={`/learn/${lesson.id}`}
-                    className={`group relative flex flex-col justify-between rounded-2xl border p-5 transition ${
+                    className={`group relative flex flex-col justify-between rounded-3xl border p-6 transition ${
                       isCompleted
                         ? "border-emerald-500/30 bg-gradient-to-br from-emerald-950/15 via-[#070c14] to-[#070c14]"
                         : isCurrent
-                        ? "border-cyan-400/60 bg-gradient-to-br from-cyan-950/20 via-[#070c14] to-[#070c14] shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                        : "border-white/10 bg-[#070c14] hover:border-cyan-400/30"
+                        ? "border-cyan-400/60 bg-gradient-to-br from-cyan-950/20 via-[#070c14] to-[#070c14] shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "border-white/10 bg-[#070c14] hover:border-cyan-400/30 hover:bg-[#090f18]"
                     }`}
                   >
                     <div>
@@ -253,17 +289,31 @@ export default function LearnPage() {
                         )}
                       </div>
 
-                      <h3 className="mt-3 text-base font-bold text-white group-hover:text-cyan-200 transition">
+                      <h3 className="mt-3 text-lg font-bold text-white group-hover:text-cyan-200 transition">
                         {lesson.title}
                       </h3>
-                      <p className="mt-1 text-xs text-slate-400 line-clamp-2">
+                      <p className="mt-1 text-xs text-slate-400 line-clamp-2 leading-relaxed">
                         {lesson.subtitle}
                       </p>
+
+                      {/* Topic Tags */}
+                      {lesson.tags && (
+                        <div className="mt-4 flex flex-wrap gap-1.5">
+                          {lesson.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/5 text-slate-400"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-3 text-[11px] text-slate-400">
+                    <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-slate-400">
                       <span className="flex items-center gap-1">
-                        <Clock3 size={12} />
+                        <Clock3 size={13} />
                         {lesson.duration}
                       </span>
                       <span className="font-mono font-semibold text-cyan-300">

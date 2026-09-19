@@ -47,6 +47,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         explanation:
           "The Pauli-X gate is the quantum analog of a classical NOT gate. In matrix form it exchanges computational basis states: X|0⟩ = |1⟩ and X|1⟩ = |0⟩.",
       },
+      {
+        id: "qb-q3",
+        prompt:
+          "According to Holevo's theorem, how many classical bits of information can you extract by measuring a single isolated qubit?",
+        options: [
+          "Infinite bits, because amplitudes are continuous complex numbers",
+          "At most 1 classical bit",
+          "2 classical bits",
+          "0 bits, because measurement destroys the state",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Holevo's bound states that despite possessing infinite continuous statevector possibilities before measurement, measuring a single qubit can yield at most 1 classical bit of accessible information.",
+      },
     ],
   },
   "measurement": {
@@ -76,6 +90,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         correctIndex: 1,
         explanation:
           "Quantum measurement is projective and non-unitary. Observing outcome 0 collapses the wavefunction entirely into basis state |0⟩; any subsequent measurement immediately afterward will yield 0 with 100% certainty.",
+      },
+      {
+        id: "ms-q3",
+        prompt:
+          "Why do quantum circuit simulators like Qiskit Aer execute circuits across many 'shots' (e.g. 1024 shots)?",
+        options: [
+          "Because quantum gates are unreliable and take several tries to execute",
+          "To statistically reconstruct statevector probabilities from discrete measurement samples",
+          "To heat up the simulated processor",
+          "Because Born's rule only works on large shot numbers",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Physical quantum computers only produce a single classical bitstring per circuit run. Running multiple shots generates empirical frequencies that converge to the underlying statevector probabilities according to the law of large numbers.",
       },
     ],
   },
@@ -112,6 +140,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         explanation:
           "The Hadamard matrix is both Hermitian (H† = H) and unitary (H†H = I). Therefore H · H = I (the identity operator), which cleanly returns the qubit to its original state |0⟩.",
       },
+      {
+        id: "sp-q3",
+        prompt:
+          "What is the key difference between quantum superposition and a classical parallel processor evaluating all inputs?",
+        options: [
+          "Classical parallel processors are faster",
+          "Quantum superposition allows destructive interference to cancel wrong answers",
+          "Quantum superposition only works on numbers up to 10",
+          "Classical parallel computers cannot run algorithms",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Parallel evaluation is useless if you can only read out 1 random answer at the end. Quantum algorithms use relative phases in superposition so that undesirable paths destructively cancel while the desired answer constructively reinforces.",
+      },
     ],
   },
   "bloch-sphere": {
@@ -146,6 +188,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         correctIndex: 2,
         explanation:
           "Pure single-qubit states reside on the surface of the sphere with radius r = 1. Subsystems of entangled pairs (like either qubit in a Bell state) are completely mixed states with r = 0 at the exact center of the Bloch sphere.",
+      },
+      {
+        id: "bs-q3",
+        prompt:
+          "Why does the parameterization of the Bloch sphere use θ/2 instead of θ?",
+        options: [
+          "To divide the power requirements in half",
+          "Because qubits are spin-1/2 quantum particles, requiring a 720° (4π) rotation to return to their initial state with positive sign",
+          "Because classical computers can only count in half-steps",
+          "It is an arbitrary aesthetic convention",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Qubits are quantum spin-1/2 systems (spinors). Under a 360° rotation (θ = 2π), the statevector acquires a geometric sign flip (-1). A full 720° rotation is required to return to the identical quantum statevector.",
       },
     ],
   },
@@ -182,6 +238,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         explanation:
           "Unitary operators preserve the Euclidean inner product. This mathematically ensures that probability amplitudes always remain normalized (sum of squared magnitudes equals 1) and that quantum evolution is strictly reversible without information loss.",
       },
+      {
+        id: "qg-q3",
+        prompt:
+          "According to the Solovay-Kitaev theorem, which gate set is capable of approximating any arbitrary single-qubit rotation to arbitrary precision?",
+        options: [
+          "Only Pauli-X and Pauli-Y",
+          "Hadamard (H), Phase (S), and T gates",
+          "Measurement gates alone",
+          "Only classical NOT and AND gates",
+        ],
+        correctIndex: 1,
+        explanation:
+          "The Clifford+T gate set (specifically H, S, and T) forms a universal single-qubit gate set. Any arbitrary unitary rotation can be approximated with exponential precision using polylogarithmic sequences of these discrete gates.",
+      },
     ],
   },
   "entanglement": {
@@ -216,6 +286,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         correctIndex: 2,
         explanation:
           "Quantum entanglement is formally defined by non-separability: an entangled state cannot be decomposed into a tensor product of individual statevectors (|ψ_A⟩ ⊗ |ψ_B⟩). The quantum state describes the joint system as an indivisible whole.",
+      },
+      {
+        id: "et-q3",
+        prompt:
+          "Why does quantum entanglement NOT allow faster-than-light communication between distant observers (No-Communication Theorem)?",
+        options: [
+          "Because quantum signals slow down when passing through fiber optic cables",
+          "Because Alice's individual measurement result is completely random, leaving Bob's local density matrix unchanged without classical coordination",
+          "Because entangled pairs collapse after 1 nanosecond",
+          "Because Einstein's equations forbid entanglement",
+        ],
+        correctIndex: 1,
+        explanation:
+          "The No-Communication Theorem proves that because local measurement outcomes are genuinely probabilistic, an observer cannot force a specific outcome to transmit a message. Bob's local reduced density matrix remains identical regardless of whether Alice measures her qubit.",
       },
     ],
   },
@@ -252,6 +336,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         explanation:
           "For a balanced function, destructive interference completely cancels the amplitude of |0⟩, yielding 0% probability. Constructive interference concentrates 100% of the measurement probability on |1⟩, proving the function is balanced in a single quantum query.",
       },
+      {
+        id: "dj-q3",
+        prompt:
+          "How many oracle function evaluations are required by the Deutsch-Jozsa algorithm to determine if an n-qubit function is constant or balanced with 100% certainty?",
+        options: [
+          "2ⁿ evaluations",
+          "2^(n-1) + 1 evaluations",
+          "Exactly 1 quantum query",
+          "O(n²) queries",
+        ],
+        correctIndex: 2,
+        explanation:
+          "While a classical deterministic computer requires 2^(n-1) + 1 queries in the worst case, Deutsch-Jozsa solves the problem deterministically using exactly 1 quantum query, proving exponential speedup.",
+      },
     ],
   },
   "teleportation": {
@@ -286,6 +384,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         correctIndex: 1,
         explanation:
           "The No-Cloning Theorem is preserved because Alice's Bell-basis measurement collapses and destroys the original quantum state. Special relativity is preserved because Bob's qubit remains in a maximally mixed state until he receives Alice's classical bits at or below the speed of light.",
+      },
+      {
+        id: "tp-q3",
+        prompt:
+          "If Alice's Bell measurement produces classical outcome '01', which unitary correction must Bob apply to his qubit to recover state |ψ⟩?",
+        options: [
+          "Identity (I) — do nothing",
+          "Pauli-X (bit flip)",
+          "Pauli-Z (phase flip)",
+          "Hadamard gate",
+        ],
+        correctIndex: 1,
+        explanation:
+          "When Alice measures '01', Bob's qubit collapses to X|ψ⟩. Bob applies a Pauli-X gate (since X · X = I) to restore the exact state |ψ⟩.",
       },
     ],
   },
@@ -322,6 +434,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         explanation:
           "The Grover diffusion operator D = 2|s⟩⟨s| - I reflects the statevector about the uniform superposition |s⟩. Because the marked item's amplitude was inverted by the oracle to negative, reflecting about the mean amplifies its amplitude while reducing the unmarked states.",
       },
+      {
+        id: "gr-q3",
+        prompt:
+          "What happens if you run significantly more iterations than the optimal count R ≈ (π/4)√N in Grover's algorithm?",
+        options: [
+          "The probability increases toward 100% asymptotically",
+          "The statevector over-rotates past the target state in the 2D subspace, decreasing the success probability",
+          "The quantum computer halts automatically",
+          "The database items are erased",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Grover search is a geometric rotation in a 2D plane spanned by the target state and unmarked states. Over-rotating past the target state decreases the amplitude on the target state, demonstrating that quantum amplitude amplification must be terminated at the precise optimal rotation angle.",
+      },
     ],
   },
   "vqe-nisq": {
@@ -356,6 +482,20 @@ export const QUIZZES: Record<string, LessonQuiz> = {
         correctIndex: 1,
         explanation:
           "The Rayleigh-Ritz Variational Principle states that for any normalized trial state |ψ(θ)⟩ and Hamiltonian H, the expectation value ⟨ψ(θ)|H|ψ(θ)⟩ is strictly greater than or equal to the lowest eigenvalue (ground state energy E₀).",
+      },
+      {
+        id: "vq-q3",
+        prompt:
+          "In the hybrid VQE workflow, which part is executed by the classical computer?",
+        options: [
+          "Preparing the high-dimensional entangled quantum statevector",
+          "Measuring quantum expectation values",
+          "Running classical optimization algorithms (e.g. COBYLA, Adam, SPSA) to update rotation parameters θ",
+          "Simulating the physical quantum processor",
+        ],
+        correctIndex: 2,
+        explanation:
+          "The quantum processor evaluates the expectation values of the quantum state, while the classical CPU evaluates gradients and updates the parameter vector θ using classical numerical optimization algorithms.",
       },
     ],
   },
