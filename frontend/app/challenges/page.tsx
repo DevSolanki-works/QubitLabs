@@ -17,6 +17,7 @@ import {
   Trophy,
 } from "lucide-react";
 
+import { UserMenu } from "@/components/UserMenu";
 import { challenges, getAllChallenges } from "@/lib/challenges";
 import { getLessonById } from "@/lib/lessons";
 import {
@@ -81,12 +82,13 @@ export default function ChallengesPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href="/lab"
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
             <Atom size={14} className="text-cyan-400" />
-            <span>Free Lab</span>
+            <span>Quantum Lab</span>
           </Link>
+          <UserMenu />
         </div>
       </header>
 

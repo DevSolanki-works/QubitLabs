@@ -18,6 +18,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
+import { UserMenu } from "@/components/UserMenu";
 import { lessons } from "@/lib/lessons";
 import {
   getCompletedLessons,
@@ -118,6 +119,8 @@ export default function LearnPage() {
             <Trophy size={14} />
             <span>Challenges Hub</span>
           </Link>
+
+          <UserMenu />
 
           {mounted && progressStats.completed > 0 && (
             <button

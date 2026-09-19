@@ -26,6 +26,7 @@ import { isLessonComplete, markLessonComplete } from "@/lib/progress";
 import { getResourcesForLesson, getRecommendedResourceForLesson } from "@/lib/resources";
 import QuizCard from "@/components/QuizCard";
 import ResourceCard from "@/components/ResourceCard";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function LessonPage() {
   const params = useParams();
@@ -134,6 +135,8 @@ export default function LessonPage() {
             <Play size={13} />
             <span>Open in Lab</span>
           </Link>
+
+          <UserMenu />
         </div>
       </header>
 

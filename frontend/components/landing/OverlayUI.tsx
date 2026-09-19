@@ -12,6 +12,7 @@ import {
   Compass,
   Zap,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 function SlideFooter({ hintText = "SCROLL", mobileHintText }: { hintText?: string; mobileHintText?: string }) {
   return (
@@ -32,6 +33,7 @@ interface OverlayUIProps {
 
 export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [activeGate, setActiveGate] = useState("NONE");
   const [prob0, setProb0] = useState(50);
   const [prob1, setProb1] = useState(50);
@@ -114,7 +116,7 @@ export function OverlayUI({ onApplyGate = () => {}, onOpenLab }: OverlayUIProps)
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
             <Link
-              href="/learn"
+              href={user ? "/dashboard" : "/auth/signup?next=/learn"}
               className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-300 text-[#07080c] font-bold text-xs sm:text-sm hover:opacity-95 transition-all hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] pointer-events-auto cursor-pointer flex items-center gap-2"
             >
               <span>Start Learning</span>

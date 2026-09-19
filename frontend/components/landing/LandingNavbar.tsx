@@ -11,6 +11,7 @@ import {
   Trophy,
   Compass,
 } from "lucide-react";
+import { UserMenu } from "@/components/UserMenu";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -97,9 +98,11 @@ export function LandingNavbar() {
             <span>Qiskit Aer 2.5</span>
           </div>
 
+          <UserMenu />
+
           <Link
             href="/lab"
-            className="px-5 py-2 rounded-full bg-white text-[#07080c] font-semibold text-xs sm:text-sm hover:bg-[#d8e2ff] transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.35)]"
+            className="hidden sm:inline-flex px-5 py-2 rounded-full bg-white text-[#07080c] font-semibold text-xs sm:text-sm hover:bg-[#d8e2ff] transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.35)]"
           >
             Launch Lab
           </Link>
@@ -127,7 +130,7 @@ export function LandingNavbar() {
                 className="flex items-center gap-2.5 text-slate-200 hover:text-cyan-300"
               >
                 <GraduationCap size={18} className="text-cyan-400" />
-                <span>Curriculum (6 Lessons)</span>
+                <span>Curriculum</span>
               </Link>
             </li>
             <li>

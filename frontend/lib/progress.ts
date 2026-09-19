@@ -23,6 +23,8 @@ export function getCompletedLessons(): string[] {
 }
 
 import { awardXP, unlockAchievement } from "./gamification";
+import { createClient, isSupabaseConfigured } from "./supabase/client";
+import { persistLessonToSupabase } from "./supabase/sync";
 
 export function isLessonComplete(lessonId: string): boolean {
   return getCompletedLessons().includes(lessonId);
@@ -58,6 +60,17 @@ export function markLessonComplete(lessonId: string): void {
 
       // Dispatch a custom storage event so other components on the same page can re-render
       window.dispatchEvent(new Event("qubitlabs-progress-updated"));
+
+      // Asynchronously persist to Supabase if authenticated
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
+        supabase.auth.getUser().then((res: any) => {
+          const user = res?.data?.user;
+          if (user) {
+            persistLessonToSupabase(user.id, lessonId);
+          }
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.error("Failed to save progress to localStorage:", err);

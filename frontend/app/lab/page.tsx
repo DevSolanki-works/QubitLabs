@@ -23,12 +23,15 @@ import MeasurementChart from "@/components/MeasurementChart";
 import QuantumCopilot from "@/components/QuantumCopilot";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import ChallengeCompletionCard from "@/components/ChallengeCompletionCard";
+import { UserMenu } from "@/components/UserMenu";
 
 import { getChallengeById, getChallengeForLesson } from "@/lib/challenges";
 import { getLessonById, getNextLesson } from "@/lib/lessons";
 import { markLessonComplete } from "@/lib/progress";
 import { recordSimulation, awardXP } from "@/lib/gamification";
 import { validateChallenge, ValidationResult } from "@/lib/challengeValidator";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { persistChallengeToSupabase } from "@/lib/supabase/sync";
 
 import {
   addColumn,
@@ -165,6 +168,16 @@ function LabPage() {
         if (validation.passed && (lesson?.id || challenge.lessonId)) {
           markLessonComplete(lesson?.id ?? challenge.lessonId);
           awardXP(75, `Completed Challenge: ${challenge.title}`);
+
+          if (isSupabaseConfigured()) {
+            const supabase = createClient();
+            supabase.auth.getUser().then((res: any) => {
+              const user = res?.data?.user;
+              if (user) {
+                persistChallengeToSupabase(user.id, challenge.id);
+              }
+            }).catch(() => {});
+          }
         }
       }
     } catch (error) {
@@ -282,6 +295,8 @@ function LabPage() {
             <span className="font-mono text-cyan-300">Qiskit Aer</span>
             <ChevronDown size={12} className="text-white/20" />
           </div>
+
+          <UserMenu />
         </div>
       </header>
 

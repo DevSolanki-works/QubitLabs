@@ -1,3 +1,11 @@
+import { createClient, isSupabaseConfigured } from "./supabase/client";
+import {
+  persistProgressionToSupabase,
+  persistAchievementToSupabase,
+  persistQuizToSupabase,
+  logActivityToSupabase,
+} from "./supabase/sync";
+
 export type Rank = {
   tier: number;
   name: string;
@@ -229,7 +237,7 @@ function getYesterdayString(): string {
   return `${year}-${month}-${day}`;
 }
 
-const DEFAULT_STATE: GamificationState = {
+export const DEFAULT_STATE: GamificationState = {
   xp: 0,
   unlockedAchievements: [],
   simulationCount: 0,
@@ -275,6 +283,17 @@ function saveGamificationState(state: GamificationState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     window.dispatchEvent(new Event("qubitlabs-gamification-updated"));
+
+    // Asynchronously persist progression to Supabase if authenticated
+    if (isSupabaseConfigured()) {
+      const supabase = createClient();
+      supabase.auth.getUser().then((res: any) => {
+        const user = res?.data?.user;
+        if (user) {
+          persistProgressionToSupabase(user.id, state);
+        }
+      }).catch(() => {});
+    }
   } catch (err) {
     console.error("Failed to persist gamification state:", err);
   }
@@ -399,6 +418,18 @@ export function unlockAchievement(achievementId: string): GamificationState {
   ];
 
   saveGamificationState(state);
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    supabase.auth.getUser().then((res: any) => {
+      const user = res?.data?.user;
+      if (user) {
+        persistAchievementToSupabase(user.id, achievementId);
+        logActivityToSupabase(user.id, "achievement", `Achievement: ${achievement.title}`, achievement.xpReward);
+      }
+    }).catch(() => {});
+  }
+
   return state;
 }
 
@@ -491,5 +522,32 @@ export function recordQuizSubmission(
   }
 
   saveGamificationState(state);
+
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    supabase.auth.getUser().then((res: any) => {
+      const user = res?.data?.user;
+      if (user) {
+        persistQuizToSupabase(
+          user.id,
+          lessonId,
+          score,
+          total,
+          Math.max(score, existing?.bestScore || 0),
+          attempts,
+          passed
+        );
+        if (xpEarned > 0) {
+          logActivityToSupabase(
+            user.id,
+            "quiz",
+            `Quiz: ${lessonId} (${score}/${total})`,
+            xpEarned
+          );
+        }
+      }
+    }).catch(() => {});
+  }
+
   return { state, xpEarned, isPerfect, passed };
 }

@@ -26,6 +26,8 @@ import {
   Bot,
 } from "lucide-react";
 
+import { useAuth } from "@/context/AuthContext";
+import { UserMenu } from "@/components/UserMenu";
 import { lessons } from "@/lib/lessons";
 import { challenges } from "@/lib/challenges";
 import { getCompletedLessons, getProgress, resetProgress } from "@/lib/progress";
@@ -56,6 +58,7 @@ export default function DashboardPageWrapper() {
 function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, profile } = useAuth();
 
   // Forward backwards-compatible query params to /lab
   useEffect(() => {
@@ -191,11 +194,13 @@ function DashboardPage() {
 
           <Link
             href="/lab"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-4 py-1.5 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 px-4 py-1.5 text-xs font-semibold text-[#061016] shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:opacity-90"
           >
             <FlaskConical size={14} />
             <span>Quantum Lab</span>
           </Link>
+
+          <UserMenu />
 
           {mounted && progressStats.completed > 0 && (
             <button
@@ -210,6 +215,24 @@ function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10 lg:py-14">
+        {/* Guest mode warning if unauthenticated */}
+        {!user && mounted && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-950/20 p-4 text-xs backdrop-blur-md">
+            <div className="flex items-center gap-2.5 text-cyan-200">
+              <Sparkles size={16} className="text-cyan-400 shrink-0" />
+              <span>
+                You are currently exploring as a guest. Sign in or create an account to permanently sync your progress and XP across devices.
+              </span>
+            </div>
+            <Link
+              href="/auth/login"
+              className="px-3.5 py-1 rounded-lg bg-cyan-400 text-black font-semibold hover:bg-cyan-300 transition"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
+
         {/* Top Section: Rank Banner & Streak */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Rank Card */}
@@ -224,6 +247,11 @@ function DashboardPage() {
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
                       Tier {rankInfo.rank.tier} Quantum Rank
                     </span>
+                    {user && (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        · {profile?.displayName || user.email?.split("@")[0]}
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-2xl font-bold text-white lg:text-3xl">
                     {rankInfo.rank.name}
