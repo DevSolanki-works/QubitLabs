@@ -1,30 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return Boolean(
-    url &&
-      anonKey &&
-      !url.includes("your-project-id") &&
-      !anonKey.includes("your_supabase_anon")
-  );
-}
+import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from "./client";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  if (!isSupabaseConfigured()) {
-    // If Supabase is not yet configured, allow traffic to pass through gracefully
-    return supabaseResponse;
-  }
-
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    DEFAULT_SUPABASE_URL,
+    DEFAULT_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -51,7 +36,6 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-
   // If user is already logged in, redirect away from auth pages (/auth/login, /auth/signup) to next destination or /dashboard
   if (
     user &&
@@ -59,11 +43,16 @@ export async function updateSession(request: NextRequest) {
       pathname === "/auth/signup" ||
       pathname === "/auth/forgot-password")
   ) {
-    const nextParam = request.nextUrl.searchParams.get("next");
-    const targetPath = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
     const url = request.nextUrl.clone();
-    url.pathname = targetPath;
-    url.searchParams.delete("next");
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  // If user is not logged in and attempts to access protected routes, redirect to /auth/login
+  if (!user && (pathname.startsWith("/settings") || pathname.startsWith("/profile"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 

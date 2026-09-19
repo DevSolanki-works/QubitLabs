@@ -124,20 +124,6 @@ function SignUpPage() {
         </p>
       </div>
 
-      {!isConfigured && (
-        <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-300">
-          <div className="flex items-start gap-2.5">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold block mb-1">
-                Supabase Keys Not Configured
-              </span>
-              Please set <code className="font-mono bg-amber-500/20 px-1 py-0.5 rounded">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="font-mono bg-amber-500/20 px-1 py-0.5 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in <code className="font-mono">.env.local</code> to enable persistent cloud accounts.
-            </div>
-          </div>
-        </div>
-      )}
-
       {errorMessage && (
         <div className="mb-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-rose-300">
           <div className="flex items-center gap-2.5">
@@ -151,7 +137,7 @@ function SignUpPage() {
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        disabled={loading || googleLoading || !isConfigured}
+        disabled={loading || googleLoading}
         className="w-full py-3 px-4 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-white font-medium text-sm transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
       >
         {googleLoading ? (
@@ -267,7 +253,7 @@ function SignUpPage() {
 
         <button
           type="submit"
-          disabled={loading || !isConfigured}
+          disabled={loading}
           className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-300 hover:from-cyan-300 hover:to-cyan-200 text-[#07080c] font-bold text-sm transition shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
         >
           {loading ? (
