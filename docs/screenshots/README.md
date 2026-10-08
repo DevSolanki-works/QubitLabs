@@ -9,3 +9,4 @@ This directory stores visual previews for the repository documentation. Recommen
 5. `05-quantum-copilot.png` — Gemini-grounded Quantum Copilot in Explain/Debug/Explore modes.
 6. `06-challenge-verification.png` — Real-time deterministic circuit evaluation with verified completion card.
 7. `07-student-dashboard.png` — Technical rank progression (Tier 1–8), daily streak tracking, and achievement showcase.
+8. `08-community-forum.png` — Quantum community forum with discussion threads, upvotes, and Q&A sections.
