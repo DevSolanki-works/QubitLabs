@@ -1,11 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from "./client";
+import {
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  createTimeoutFetch,
+} from "./client";
 
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY, {
+    global: {
+      fetch: createTimeoutFetch(3000),
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

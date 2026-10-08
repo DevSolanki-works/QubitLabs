@@ -14,12 +14,50 @@ export function isSupabaseConfigured(): boolean {
   return true;
 }
 
+/**
+ * Creates a fetch wrapper with an explicit AbortSignal.timeout() that returns
+ * HTTP 408 on network/abort errors so @supabase/auth-js does not enter its
+ * 26-second exponential-backoff retry loop (which triggers on status 0, 502, 503, 504).
+ */
+export function createTimeoutFetch(
+  timeoutMs = 3000,
+  onNetworkFailure?: () => void
+): typeof fetch {
+  return async (input, init) => {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
+
+    try {
+      return await fetch(input, { ...init, signal });
+    } catch {
+      onNetworkFailure?.();
+      return new Response(
+        JSON.stringify({
+          error: "network_timeout",
+          message: `Supabase request timed out or failed (${timeoutMs}ms limit)`,
+        }),
+        {
+          status: 408,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  };
+}
+
 export function createClient() {
   if (browserClient) return browserClient;
 
   browserClient = createBrowserClient(
     DEFAULT_SUPABASE_URL,
-    DEFAULT_SUPABASE_ANON_KEY
+    DEFAULT_SUPABASE_ANON_KEY,
+    {
+      global: {
+        fetch: createTimeoutFetch(4000),
+      },
+    }
   );
   return browserClient;
 }

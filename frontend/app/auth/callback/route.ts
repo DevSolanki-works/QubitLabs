@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from "@/lib/supabase/client";
+import {
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  createTimeoutFetch,
+} from "@/lib/supabase/client";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -22,6 +26,9 @@ export async function GET(request: Request) {
         DEFAULT_SUPABASE_URL,
         DEFAULT_SUPABASE_ANON_KEY,
         {
+          global: {
+            fetch: createTimeoutFetch(4000),
+          },
           cookies: {
             getAll() {
               return cookieStore.getAll();
